@@ -231,6 +231,7 @@
           <transitiveDependencyReference>ignore</transitiveDependencyReference>
           <!-- TODO: "error" -->
           <privatePackageReference>ignore</privatePackageReference>
+          <!-- TODO: "jdt" -->
           <compilerId>javac</compilerId>
           <proc>none</proc>
         </configuration>

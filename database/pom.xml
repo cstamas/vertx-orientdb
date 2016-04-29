@@ -81,25 +81,15 @@
       <plugin>
         <groupId>io.takari.maven.plugins</groupId>
         <artifactId>takari-lifecycle-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>generate-sources</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-            <configuration>
-              <proc>onlyEX</proc>
-              <sourcepath>disable</sourcepath>
-              <annotationProcessors>
-                <annotationProcessor>io.vertx.codegen.CodeGenProcessor</annotationProcessor>
-              </annotationProcessors>
-              <annotationProcessorOptions>
-                <outputDirectory>${project.basedir}/src/main</outputDirectory>
-              </annotationProcessorOptions>
-            </configuration>
-          </execution>
-        </executions>
+        <configuration>
+          <proc>proc</proc>
+          <annotationProcessors>
+            <annotationProcessor>io.vertx.codegen.CodeGenProcessor</annotationProcessor>
+          </annotationProcessors>
+          <annotationProcessorOptions>
+            <outputDirectory>${project.basedir}/src/main</outputDirectory>
+          </annotationProcessorOptions>
+        </configuration>
       </plugin>
     </plugins>
   </build>

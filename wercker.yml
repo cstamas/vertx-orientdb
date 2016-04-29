@@ -1,0 +1,6 @@
+box: maven
+build:
+  steps:
+    - script:
+        name: mvn clean install
+        code: mvn clean install

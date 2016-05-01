@@ -36,7 +36,7 @@ public class DatabaseServiceImpl
           if (ah.succeeded()) {
             ODatabaseDocumentTx db = ah.result();
             db.begin();
-            ODocument doc = new ODocument(clazz);
+            ODocument doc = db.newInstance(clazz);
             doc.fromJSON(document.toString());
             db.save(doc);
             db.commit();

@@ -4,12 +4,13 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.SLF4JLogDelegateFactory;
+import org.junit.Test;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 /**
- * Created by cstamas on 25/04/16.
+ * Junit test.
  */
-public class Tester
+public class WithoutServerTest
 {
   static {
     System.setProperty("vertx.logger-delegate-factory-class-name", SLF4JLogDelegateFactory.class.getName());
@@ -17,12 +18,16 @@ public class Tester
     SLF4JBridgeHandler.install();
   }
 
-  public static void main(String[] a) throws Exception {
+  @Test
+  public void withoutServer() throws Exception {
     Vertx vertx = Vertx.vertx();
-    vertx.deployVerticle(TestVerticle.class.getName(),
-        new DeploymentOptions().setConfig(new JsonObject("{\"serverEnabled\":true}")));
+    vertx.deployVerticle(
+        TestVerticle.class.getName(),
+        new DeploymentOptions().setConfig(
+            new JsonObject("{\"serverEnabled\":false, \"orientHome\":\"target/withoutServer\"}")
+        )
+    );
     Thread.sleep(10000);
-
     vertx.close();
   }
 }

@@ -10,23 +10,26 @@ import io.vertx.core.logging.LoggerFactory;
 /**
  * OrientDB test verticle.
  */
-public class ServiceReaderVerticle
+public class ServiceWriterVerticle
     extends AbstractVerticle
 {
-  private static final Logger log = LoggerFactory.getLogger(ServiceReaderVerticle.class);
+  private static final Logger log = LoggerFactory.getLogger(ServiceWriterVerticle.class);
 
   @Override
   public void start(final Future<Void> startFuture) throws Exception {
     DatabaseService databaseService = DatabaseService.createProxy(vertx, "test");
-    vertx.eventBus().consumer("read",
+    vertx.eventBus().consumer("write",
         (Message<JsonObject> m) -> {
-          log.info("Ping read");
-          databaseService.select("test", "1=1", ar -> {
-                if (ar.succeeded()) {
-                  log.info("List size=" + ar.result().size());
+          databaseService.insert(
+              "test",
+              new JsonObject().put("name", "name").put("value", "value"),
+              h -> {
+                log.info("Ping");
+                if (h.succeeded()) {
+                  log.info("Written OID " + h.result());
                 }
                 else {
-                  log.error("Error", ar.cause());
+                  log.error("Error", h.cause());
                 }
               }
           );

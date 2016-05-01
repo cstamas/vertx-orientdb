@@ -101,7 +101,7 @@
         <user resources="*" password="root" name="root"/>
     </users>
     <properties>
-        <entry value="true" name="environment.dumpCfgAtStartup"/>
+        <entry value="false" name="environment.dumpCfgAtStartup"/>
         <entry value="1" name="db.pool.min"/>
         <entry value="50" name="db.pool.max"/>
         <entry value="true" name="profiler.enabled"/>

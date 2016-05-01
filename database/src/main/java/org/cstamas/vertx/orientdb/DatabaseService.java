@@ -10,7 +10,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 
 /**
- * OrientDB service, registered whenever a {@link Database} is created, unregistered when closed.
+ * OrientDB service, registered whenever a {@link Database} instance is created using {@link Manager#instance(String,
+ * Handler, Handler)} method, unregistered when instance closed.
  */
 @ProxyGen
 public interface DatabaseService

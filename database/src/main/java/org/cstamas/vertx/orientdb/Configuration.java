@@ -7,16 +7,23 @@ import io.vertx.core.json.JsonObject;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * OrientDB configuration. Sets do you enable OrientServer (to be able to connect to OrientDB remotely or not, and
- * where orient DB Home is (if relative, is resolved against process CWD). The rest comes from standard OrientDB
- * configuration facilities (if server enabled).
+ * Configuration of OrientDB integration. Allows to selectively enable OrientServer (to be able to connect to OrientDB
+ * remotely or not, and to set orient DB Home is (if relative, is resolved against process CWD). For server, rest of
+ * configuration is expected to come from standard OrientDB facilities read from {@code
+ * &lt;orientHome&gt;/config/orientdb-server-config.xml} (as per OrientDB documentation).
+ * <p/>
+ * Default configuration is created if one is not found (copied from OrientDB distribution) but it is NOT MEANT
+ * for production, just for toying.
  *
+ * Example configuration value (these are default values):
  * <ttyl>
  * {
  * "serverEnabled" : "true",
  * "orientHome" : "orientdb"
  * }
  * </ttyl>
+ *
+ * @see <a href="http://orientdb.com/docs/2.1/DB-Server.html">OrientDB Server</a>
  */
 public class Configuration
 {

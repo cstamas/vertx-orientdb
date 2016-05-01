@@ -40,20 +40,16 @@ public class ManagerImpl
 {
   private class DatabaseInfo
   {
-    private final String name;
-
     private final Database database;
 
     private final OPartitionedDatabasePool databasePool;
 
     private final MessageConsumer<JsonObject> serviceMessageConsumer;
 
-    public DatabaseInfo(final String name,
-                        final Database database,
+    public DatabaseInfo(final Database database,
                         final OPartitionedDatabasePool databasePool,
                         final MessageConsumer<JsonObject> serviceMessageConsumer)
     {
-      this.name = name;
       this.database = database;
       this.databasePool = databasePool;
       this.serviceMessageConsumer = serviceMessageConsumer;
@@ -156,7 +152,7 @@ public class ManagerImpl
               database = new DatabaseImpl(name, this);
               MessageConsumer<JsonObject> serviceMessageConsumer = ProxyHelper
                   .registerService(DatabaseService.class, vertx, new DatabaseServiceImpl(database), name);
-              DatabaseInfo databaseInfo = new DatabaseInfo(name, database, pool, serviceMessageConsumer);
+              DatabaseInfo databaseInfo = new DatabaseInfo(database, pool, serviceMessageConsumer);
               databaseInfos.put(name, databaseInfo);
             }
             f.complete(database);
@@ -267,8 +263,9 @@ public class ManagerImpl
     vertx.executeBlocking(
         f -> {
           try {
-            OPartitionedDatabasePool pool = databaseInfos.get(name).databasePool;
-            checkState(pool != null, "Non-existent orientdb with name '%s'", name);
+            DatabaseInfo databaseInfo = databaseInfos.get(name);
+            checkState(databaseInfo != null, "Non-existent database: %s", name);
+            OPartitionedDatabasePool pool = databaseInfo.databasePool;
             try (ODatabaseDocumentTx db = pool.acquire()) {
               handler.handle(Future.succeededFuture(db));
             }
@@ -286,7 +283,7 @@ public class ManagerImpl
         f -> {
           try {
             DatabaseInfo databaseInfo = databaseInfos.get(name);
-            checkState(databaseInfo != null, "Non-existent database with name '%s'", name);
+            checkState(databaseInfo != null, "Non-existent database: %s", name);
             databaseInfo.close();
             databaseInfos.remove(name);
             f.complete();

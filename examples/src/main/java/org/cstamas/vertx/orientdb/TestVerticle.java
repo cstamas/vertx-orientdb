@@ -1,7 +1,5 @@
 package org.cstamas.vertx.orientdb;
 
-import java.util.HashSet;
-
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.metadata.schema.OType;
@@ -9,8 +7,8 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 /**
  * OrientDB test verticle.
@@ -26,15 +24,12 @@ public class TestVerticle
 
   private WriterVerticle writerVerticle;
 
-  private HashSet<String> deploymentIds = new HashSet<>();
-
   @Override
   public void start(final Future<Void> startFuture) throws Exception {
     managerVerticle = new ManagerVerticle();
     vertx.deployVerticle(managerVerticle, new DeploymentOptions().setConfig(config()),
         c -> {
           if (c.succeeded()) {
-            deploymentIds.add(c.result());
             Manager manager = managerVerticle.getManager();
             manager.instance(
                 "test",
@@ -49,10 +44,10 @@ public class TestVerticle
                 instance -> {
                   if (instance.succeeded()) {
                     writerVerticle = new WriterVerticle(instance.result());
-                    vertx.deployVerticle(writerVerticle, wd -> deploymentIds.add(wd.result()));
+                    vertx.deployVerticle(writerVerticle);
 
                     readerVerticle = new ReaderVerticle(instance.result());
-                    vertx.deployVerticle(readerVerticle, rd -> deploymentIds.add(rd.result()));
+                    vertx.deployVerticle(readerVerticle);
 
                     vertx.deployVerticle(ServiceReaderVerticle.class.getName());
                     vertx.deployVerticle(ServiceWriterVerticle.class.getName());
@@ -80,10 +75,5 @@ public class TestVerticle
         }
     );
     super.start(startFuture);
-  }
-
-  @Override
-  public void stop(final Future<Void> stopFuture) throws Exception {
-    super.stop(stopFuture);
   }
 }

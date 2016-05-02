@@ -21,8 +21,6 @@ public class TestVerticle
 
   private WriterVerticle writerVerticle;
 
-  private ConnectionInfo connectionInfo;
-
   @Override
   public void start(final Future<Void> startFuture) throws Exception {
     managerVerticle = new ManagerVerticle();

@@ -11,27 +11,27 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
-import org.cstamas.vertx.orientdb.Database;
-import org.cstamas.vertx.orientdb.DatabaseService;
+import org.cstamas.vertx.orientdb.DocumentDatabase;
+import org.cstamas.vertx.orientdb.DocumentDatabaseService;
 
 /**
  * Default implementation.
  */
-public class DatabaseServiceImpl
-    implements DatabaseService
+public class DocumentDatabaseServiceImpl
+    implements DocumentDatabaseService
 {
-  private final Database database;
+  private final DocumentDatabase documentDatabase;
 
-  public DatabaseServiceImpl(final Database database) {
-    this.database = database;
+  public DocumentDatabaseServiceImpl(final DocumentDatabase documentDatabase) {
+    this.documentDatabase = documentDatabase;
   }
 
   @Override
-  public DatabaseService insert(final String clazz,
-                                final JsonObject document,
-                                final Handler<AsyncResult<String>> handler)
+  public DocumentDatabaseService insert(final String clazz,
+                                        final JsonObject document,
+                                        final Handler<AsyncResult<String>> handler)
   {
-    database.exec(
+    documentDatabase.exec(
         ah -> {
           if (ah.succeeded()) {
             ODatabaseDocumentTx db = ah.result();
@@ -51,8 +51,8 @@ public class DatabaseServiceImpl
   }
 
   @Override
-  public DatabaseService delete(final String clazz, final String where, final Handler<AsyncResult<Void>> handler) {
-    database.exec(
+  public DocumentDatabaseService delete(final String clazz, final String where, final Handler<AsyncResult<Void>> handler) {
+    documentDatabase.exec(
         ah -> {
           if (ah.succeeded()) {
             ODatabaseDocumentTx db = ah.result();
@@ -70,11 +70,11 @@ public class DatabaseServiceImpl
   }
 
   @Override
-  public DatabaseService select(final String clazz,
-                                final String where,
-                                final Handler<AsyncResult<List<JsonObject>>> handler)
+  public DocumentDatabaseService select(final String clazz,
+                                        final String where,
+                                        final Handler<AsyncResult<List<JsonObject>>> handler)
   {
-    database.exec(
+    documentDatabase.exec(
         ah -> {
           if (ah.succeeded()) {
             ODatabaseDocumentTx db = ah.result();

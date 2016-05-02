@@ -17,14 +17,13 @@ public class ServiceWriterVerticle
 
   @Override
   public void start(final Future<Void> startFuture) throws Exception {
-    DatabaseService databaseService = DatabaseService.createProxy(vertx, "test");
+    DocumentDatabaseService documentDatabaseService = DocumentDatabaseService.createProxy(vertx, "test");
     vertx.eventBus().consumer("write",
         (Message<JsonObject> m) -> {
-          databaseService.insert(
+          documentDatabaseService.insert(
               "test",
               new JsonObject().put("name", "name").put("value", "value"),
               h -> {
-                log.info("Ping");
                 if (h.succeeded()) {
                   log.info("Written OID " + h.result());
                 }

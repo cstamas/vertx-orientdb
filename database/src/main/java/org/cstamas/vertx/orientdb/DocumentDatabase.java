@@ -8,14 +8,21 @@ import io.vertx.core.Closeable;
 import io.vertx.core.Handler;
 
 /**
- * OrientDB pooled database instance.
+ * OrientDB pooled document database instance.
  */
-public interface Database
+public interface DocumentDatabase
     extends Closeable
 {
+  /**
+   * Result handler for Orient non-blocking query.
+   *
+   * @see <a href="http://orientdb.com/docs/2.1/Document-Database.html#non-blocking-query-since-v2-1">Non-Blocking query
+   * (since v2.1)</a>
+   */
   interface ResultHandler<T>
-      extends Handler<T>
   {
+    boolean handle(T rec);
+
     void failure(Throwable t);
 
     void end();
@@ -29,10 +36,10 @@ public interface Database
   /**
    * Executes handler with pooled {@link ODatabaseDocumentTx} connection.
    */
-  Database exec(Handler<AsyncResult<ODatabaseDocumentTx>> handler);
+  DocumentDatabase exec(Handler<AsyncResult<ODatabaseDocumentTx>> handler);
 
   /**
    * Executes Orient async query.
    */
-  <T> Database select(ResultHandler<T> handler, String sql, Map<String, Object> params);
+  <T> DocumentDatabase select(ResultHandler<T> handler, String sql, Map<String, Object> params);
 }

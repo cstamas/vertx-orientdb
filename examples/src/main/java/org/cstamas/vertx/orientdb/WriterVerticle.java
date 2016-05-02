@@ -17,17 +17,17 @@ public class WriterVerticle
 {
   private static final Logger log = LoggerFactory.getLogger(WriterVerticle.class);
 
-  private final Database database;
+  private final DocumentDatabase documentDatabase;
 
-  public WriterVerticle(final Database database) {
-    this.database = database;
+  public WriterVerticle(final DocumentDatabase documentDatabase) {
+    this.documentDatabase = documentDatabase;
   }
 
   @Override
   public void start(final Future<Void> startFuture) throws Exception {
     vertx.eventBus().consumer("write",
         (Message<JsonObject> m) -> {
-          database.exec(adb -> {
+          documentDatabase.exec(adb -> {
                 if (adb.succeeded()) {
                   ODatabaseDocumentTx db = adb.result();
                   JsonObject message = m.body();

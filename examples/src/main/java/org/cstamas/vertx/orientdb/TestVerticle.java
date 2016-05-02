@@ -7,8 +7,7 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.cstamas.vertx.orientdb.Manager.ConnectionInfo;
 
 /**
  * OrientDB test verticle.
@@ -16,23 +15,24 @@ import io.vertx.core.logging.LoggerFactory;
 public class TestVerticle
     extends AbstractVerticle
 {
-  private static final Logger log = LoggerFactory.getLogger(TestVerticle.class);
-
   private ManagerVerticle managerVerticle = new ManagerVerticle();
 
   private ReaderVerticle readerVerticle;
 
   private WriterVerticle writerVerticle;
 
+  private ConnectionInfo connectionInfo;
+
   @Override
   public void start(final Future<Void> startFuture) throws Exception {
     managerVerticle = new ManagerVerticle();
+
     vertx.deployVerticle(managerVerticle, new DeploymentOptions().setConfig(config()),
         c -> {
           if (c.succeeded()) {
-            Manager manager = managerVerticle.getManager();
-            manager.instance(
-                "test",
+            final Manager manager = managerVerticle.getManager();
+            manager.documentInstance(
+                selectConnectionInfo(manager),
                 db -> {
                   OSchema schema = db.getMetadata().getSchema();
                   if (!schema.existsClass("test")) {
@@ -75,5 +75,26 @@ public class TestVerticle
         }
     );
     super.start(startFuture);
+  }
+
+  private ConnectionInfo selectConnectionInfo(final Manager manager) {
+    String protocol = config().getString("protocol", "plocal");
+    if (protocol.equals("plocal")) {
+      return manager.plocalConnection("test");
+    }
+    else if (protocol.equals("memory")) {
+      return manager.memoryConnection("test");
+    }
+    else if (protocol.equals("remote")) {
+      manager.documentInstance(manager.plocalConnection(
+          "local_test"),
+          db -> db.getMetadata().getSchema().createClass("test"),
+          null
+      );
+      return manager.remoteConnection("test", "localhost", "local_test", "admin", "admin");
+    }
+    else {
+      throw new IllegalArgumentException("Unknown protocol: " + protocol);
+    }
   }
 }

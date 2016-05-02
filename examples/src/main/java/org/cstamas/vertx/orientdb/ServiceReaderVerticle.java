@@ -17,10 +17,10 @@ public class ServiceReaderVerticle
 
   @Override
   public void start(final Future<Void> startFuture) throws Exception {
-    DatabaseService databaseService = DatabaseService.createProxy(vertx, "test");
+    DocumentDatabaseService documentDatabaseService = DocumentDatabaseService.createProxy(vertx, "test");
     vertx.eventBus().consumer("read",
         (Message<JsonObject> m) -> {
-          databaseService.select("test", "1=1", ar -> {
+          documentDatabaseService.select("test", "1=1", ar -> {
                 if (ar.succeeded()) {
                   log.info("List size=" + ar.result().size());
                 }

@@ -8,7 +8,7 @@ import io.vertx.core.Closeable;
 import io.vertx.core.Handler;
 
 /**
- * Embedded OrientDB instance manager.
+ * Embedded OrientDB documentInstance manager.
  */
 public interface Manager
     extends Closeable
@@ -21,16 +21,59 @@ public interface Manager
   void open(Handler<AsyncResult<Manager>> handler);
 
   /**
-   * Opens an existing or creates a new named {@link Database} with given {@code name}. Before creating pool, the
+   * Connection descriptor.
+   */
+  interface ConnectionInfo
+  {
+    /**
+     * The connection name. Should be URL safe name, and databases and connections are keyed by this property.
+     */
+    String name();
+
+    /**
+     * The connection URI.
+     */
+    String uri();
+
+    /**
+     * Username to be used with connection.
+     */
+    String username();
+
+    /**
+     * Password to be used with connection.
+     */
+    String password();
+  }
+
+  /**
+   * Creates connection info using {@code plocal} prefix. It is a persistent disk based local database.
+   */
+  ConnectionInfo plocalConnection(String name);
+
+  /**
+   * Creates connection info using {@code remote} prefix. It connects to a remote OrientDB Server instance.
+   */
+  ConnectionInfo remoteConnection(String name, String hostname, String remoteName, String username, String password);
+
+  /**
+   * Creates connection info using {@code memory} prefix. It is a non-persistent database, held completely in memory.
+   */
+  ConnectionInfo memoryConnection(String name);
+
+  /**
+   * Opens or creates a new named {@link DocumentDatabase} with given {@code name}. Before creating pool, the
    * passed in {@code openHandler} is invoked if not {@code null} to perform possible maintenance, like schema
-   * upgrade/initialization, etc if needed.
+   * upgrade/initialization, etc if needed. Instances created by this method are held my manager, so any subsequent
+   * call of this method will access already created/opened instance that was cached quickly.
    *
-   * @param name            the orientdb instance name.
+   * @param connectionInfo  the orientdb connection information.
    * @param openHandler     the handler to invoke in single-connection mode, useful to set up schema, upgrade schema or
    *                        so, if needed, may be {@code null}.
-   * @param instanceHandler the handler invoked when instance is constructed.
+   * @param instanceHandler the handler invoked when documentInstance is constructed, may be {@code null}, as created
+   *                        instances are held by the manager, so they can be queries later using this same method.
    */
-  Manager instance(String name,
-                   @Nullable Handler<ODatabaseDocumentTx> openHandler,
-                   Handler<AsyncResult<Database>> instanceHandler);
+  Manager documentInstance(ConnectionInfo connectionInfo,
+                           @Nullable Handler<ODatabaseDocumentTx> openHandler,
+                           @Nullable Handler<AsyncResult<DocumentDatabase>> instanceHandler);
 }

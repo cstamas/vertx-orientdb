@@ -9,7 +9,7 @@ import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.cstamas.vertx.orientdb.Database.ResultHandler;
+import org.cstamas.vertx.orientdb.DocumentDatabase.ResultHandler;
 
 /**
  * OrientDB test verticle.
@@ -19,24 +19,25 @@ public class ReaderVerticle
 {
   private static final Logger log = LoggerFactory.getLogger(ReaderVerticle.class);
 
-  private final Database database;
+  private final DocumentDatabase documentDatabase;
 
-  public ReaderVerticle(final Database database) {
-    this.database = database;
+  public ReaderVerticle(final DocumentDatabase documentDatabase) {
+    this.documentDatabase = documentDatabase;
   }
 
   @Override
   public void start(final Future<Void> startFuture) throws Exception {
     vertx.eventBus().consumer("read",
         (Message<JsonObject> m) -> {
-          database.select(
+          documentDatabase.select(
               new ResultHandler<ODocument>()
               {
                 ArrayList<String> arrayList = new ArrayList<>();
 
                 @Override
-                public void handle(final ODocument doc) {
+                public boolean handle(final ODocument doc) {
                   arrayList.add(doc.field("name"));
+                  return true;
                 }
 
                 @Override

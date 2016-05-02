@@ -25,8 +25,8 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.serviceproxy.ProxyHelper;
 import org.cstamas.vertx.orientdb.Configuration;
-import org.cstamas.vertx.orientdb.Database;
-import org.cstamas.vertx.orientdb.DatabaseService;
+import org.cstamas.vertx.orientdb.DocumentDatabase;
+import org.cstamas.vertx.orientdb.DocumentDatabaseService;
 import org.cstamas.vertx.orientdb.Manager;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -40,17 +40,17 @@ public class ManagerImpl
 {
   private class DatabaseInfo
   {
-    private final Database database;
+    private final DocumentDatabase documentDatabase;
 
     private final OPartitionedDatabasePool databasePool;
 
     private final MessageConsumer<JsonObject> serviceMessageConsumer;
 
-    public DatabaseInfo(final Database database,
+    public DatabaseInfo(final DocumentDatabase documentDatabase,
                         final OPartitionedDatabasePool databasePool,
                         final MessageConsumer<JsonObject> serviceMessageConsumer)
     {
-      this.database = database;
+      this.documentDatabase = documentDatabase;
       this.databasePool = databasePool;
       this.serviceMessageConsumer = serviceMessageConsumer;
     }
@@ -64,6 +64,12 @@ public class ManagerImpl
   private static final String ADMIN_USER = "admin";
 
   private static final String ADMIN_PASSWORD = "admin";
+
+  private static final String PLOCAL_PREFIX = "plocal:";
+
+  private static final String REMOTE_PREFIX = "remote:";
+
+  private static final String MEMORY_PREFIX = "memory:";
 
   private static final Logger log = LoggerFactory.getLogger(ManagerImpl.class);
 
@@ -135,27 +141,53 @@ public class ManagerImpl
   }
 
   @Override
-  public Manager instance(String name,
-                          @Nullable Handler<ODatabaseDocumentTx> openHandler,
-                          Handler<AsyncResult<Database>> instanceHandler)
+  public ConnectionInfo plocalConnection(final String name) {
+    return new ConnectionInfoImpl(
+        name,
+        PLOCAL_PREFIX + databasesDir.resolve(name).toAbsolutePath(),
+        ADMIN_USER,
+        ADMIN_PASSWORD
+    );
+  }
+
+  @Override
+  public ConnectionInfo remoteConnection(final String name,
+                                         final String hostname,
+                                         final String remoteName,
+                                         final String username,
+                                         final String password)
   {
+    return new ConnectionInfoImpl(name, REMOTE_PREFIX + hostname + '/' + remoteName, username, password);
+  }
+
+  @Override
+  public ConnectionInfo memoryConnection(final String name) {
+    return new ConnectionInfoImpl(name, MEMORY_PREFIX + name, ADMIN_USER, ADMIN_PASSWORD);
+  }
+
+  @Override
+  public Manager documentInstance(ConnectionInfo connectionInfo,
+                                  @Nullable Handler<ODatabaseDocumentTx> openHandler,
+                                  @Nullable Handler<AsyncResult<DocumentDatabase>> instanceHandler)
+  {
+    checkNotNull(connectionInfo);
     vertx.executeBlocking(
         f -> {
           try {
-            checkNotNull(name);
-            Database database;
-            if (databaseInfos.containsKey(name)) {
-              database = databaseInfos.get(name).database;
+            DocumentDatabase documentDatabase;
+            if (databaseInfos.containsKey(connectionInfo.name())) {
+              documentDatabase = databaseInfos.get(connectionInfo.name()).documentDatabase;
             }
             else {
-              OPartitionedDatabasePool pool = createPool(name, openHandler);
-              database = new DatabaseImpl(name, this);
+              OPartitionedDatabasePool pool = createPool(connectionInfo, openHandler);
+              documentDatabase = new DocumentDatabaseImpl(connectionInfo.name(), this);
               MessageConsumer<JsonObject> serviceMessageConsumer = ProxyHelper
-                  .registerService(DatabaseService.class, vertx, new DatabaseServiceImpl(database), name);
-              DatabaseInfo databaseInfo = new DatabaseInfo(database, pool, serviceMessageConsumer);
-              databaseInfos.put(name, databaseInfo);
+                  .registerService(DocumentDatabaseService.class, vertx,
+                      new DocumentDatabaseServiceImpl(documentDatabase), connectionInfo.name());
+              DatabaseInfo databaseInfo = new DatabaseInfo(documentDatabase, pool, serviceMessageConsumer);
+              databaseInfos.put(connectionInfo.name(), databaseInfo);
             }
-            f.complete(database);
+            f.complete(documentDatabase);
           }
           catch (Exception e) {
             f.fail(e);
@@ -172,7 +204,7 @@ public class ManagerImpl
     // global startup
     Orient.instance().startup();
 
-    // instance startup
+    // documentInstance startup
     OServer server = new OServer();
     server.setExtensionClassLoader(getClass().getClassLoader());
     server.setServerRootDirectory(orientHome.toString());
@@ -181,7 +213,7 @@ public class ManagerImpl
     Orient.instance().removeShutdownHook();
     server.removeShutdownHook();
 
-    // Orient.instance().addDbLifecycleListener(entityHook);
+    // Orient.documentInstance().addDbLifecycleListener(entityHook);
 
     server.activate();
 
@@ -214,7 +246,7 @@ public class ManagerImpl
   }
 
   private void closeServer() {
-    // instance shutdown
+    // documentInstance shutdown
     orientServer.shutdown();
     orientServer = null;
 
@@ -239,24 +271,26 @@ public class ManagerImpl
     databaseInfos.clear();
   }
 
-  private OPartitionedDatabasePool createPool(final String name,
-                                              @Nullable Handler<ODatabaseDocumentTx> openHandler)
+  private OPartitionedDatabasePool createPool(final ConnectionInfo connectionInfo,
+                                              final @Nullable Handler<ODatabaseDocumentTx> openHandler)
   {
-    String uri = "plocal:" + databasesDir.resolve(name).toAbsolutePath();
-    try (ODatabaseDocumentTx db = new ODatabaseDocumentTx(uri)) {
-      if (db.exists()) {
-        db.open(ADMIN_USER, ADMIN_PASSWORD);
-        log.debug("Opened orientdb: " + name + " -> " + uri);
-      }
-      else {
-        db.create();
-        log.debug("Created orientdb: " + name + " -> " + uri);
-      }
-      if (openHandler != null) {
-        openHandler.handle(db);
+    final String uri = connectionInfo.uri();
+    if (!uri.startsWith(REMOTE_PREFIX)) {
+      try (ODatabaseDocumentTx db = new ODatabaseDocumentTx(uri)) {
+        if (db.exists()) {
+          db.open(connectionInfo.username(), connectionInfo.password());
+          log.debug("Opened existing " + connectionInfo.name() + " -> " + uri);
+        }
+        else {
+          db.create();
+          log.debug("Created new " + connectionInfo.name() + " -> " + uri);
+        }
+        if (openHandler != null) {
+          openHandler.handle(db);
+        }
       }
     }
-    return new OPartitionedDatabasePool(uri, ADMIN_USER, ADMIN_PASSWORD);
+    return new OPartitionedDatabasePool(uri, connectionInfo.username(), connectionInfo.password());
   }
 
   void exec(final String name, final Handler<AsyncResult<ODatabaseDocumentTx>> handler) {
@@ -264,7 +298,7 @@ public class ManagerImpl
         f -> {
           try {
             DatabaseInfo databaseInfo = databaseInfos.get(name);
-            checkState(databaseInfo != null, "Non-existent database: %s", name);
+            checkState(databaseInfo != null, "Non-existent documentDatabase: %s", name);
             OPartitionedDatabasePool pool = databaseInfo.databasePool;
             try (ODatabaseDocumentTx db = pool.acquire()) {
               handler.handle(Future.succeededFuture(db));
@@ -283,7 +317,7 @@ public class ManagerImpl
         f -> {
           try {
             DatabaseInfo databaseInfo = databaseInfos.get(name);
-            checkState(databaseInfo != null, "Non-existent database: %s", name);
+            checkState(databaseInfo != null, "Non-existent documentDatabase: %s", name);
             databaseInfo.close();
             databaseInfos.remove(name);
             f.complete();
@@ -294,5 +328,40 @@ public class ManagerImpl
         },
         handler
     );
+  }
+
+  private static final class ConnectionInfoImpl
+      implements ConnectionInfo
+  {
+    private final String name;
+
+    private final String uri;
+
+    private final String username;
+
+    private final String password;
+
+    public ConnectionInfoImpl(final String name, final String uri, final String username, final String password) {
+      this.name = name;
+      this.uri = uri;
+      this.username = username;
+      this.password = password;
+    }
+
+    public String name() {
+      return name;
+    }
+
+    public String uri() {
+      return uri;
+    }
+
+    public String username() {
+      return username;
+    }
+
+    public String password() {
+      return password;
+    }
   }
 }

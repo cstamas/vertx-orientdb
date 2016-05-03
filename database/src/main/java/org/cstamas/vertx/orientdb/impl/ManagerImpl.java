@@ -5,7 +5,9 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -30,6 +32,7 @@ import org.cstamas.vertx.orientdb.ConnectionOptions;
 import org.cstamas.vertx.orientdb.DocumentDatabase;
 import org.cstamas.vertx.orientdb.DocumentDatabaseService;
 import org.cstamas.vertx.orientdb.GraphDatabase;
+import org.cstamas.vertx.orientdb.GraphDatabaseService;
 import org.cstamas.vertx.orientdb.Manager;
 import org.cstamas.vertx.orientdb.ManagerOptions;
 
@@ -45,23 +48,18 @@ public class ManagerImpl
 {
   private class DatabaseInfo
   {
-    private final DocumentDatabase documentDatabase;
-
     private final OPartitionedDatabasePool databasePool;
 
-    private final MessageConsumer<JsonObject> serviceMessageConsumer;
+    private final List<Handler<Void>> closeHandlers;
 
-    DatabaseInfo(final DocumentDatabase documentDatabase,
-                 final OPartitionedDatabasePool databasePool,
-                 final MessageConsumer<JsonObject> serviceMessageConsumer)
+    DatabaseInfo(final OPartitionedDatabasePool databasePool)
     {
-      this.documentDatabase = documentDatabase;
       this.databasePool = databasePool;
-      this.serviceMessageConsumer = serviceMessageConsumer;
+      this.closeHandlers = new ArrayList<>();
     }
 
     void close() {
-      ProxyHelper.unregisterService(serviceMessageConsumer);
+      closeHandlers.forEach(h -> h.handle(null));
       databasePool.close();
     }
   }
@@ -161,34 +159,24 @@ public class ManagerImpl
                                   @Nullable Handler<ODatabaseDocumentTx> openHandler,
                                   @Nullable Handler<AsyncResult<DocumentDatabase>> instanceHandler)
   {
-    checkNotNull(connectionOptions);
-    vertx.executeBlocking(
-        f -> {
-          try {
-            DocumentDatabase documentDatabase;
-            synchronized (databaseInfos) {
-              checkArgument(!databaseInfos.containsKey(connectionOptions.name()),
-                  "Database %s already exists", connectionOptions.name());
-              if (databaseInfos.containsKey(connectionOptions.name())) {
-                documentDatabase = databaseInfos.get(connectionOptions.name()).documentDatabase;
-              }
-              else {
-                OPartitionedDatabasePool pool = createDocumentDbPool(connectionOptions, openHandler);
-                documentDatabase = new DocumentDatabaseImpl(connectionOptions.name(), this);
-                MessageConsumer<JsonObject> serviceMessageConsumer = ProxyHelper
-                    .registerService(DocumentDatabaseService.class, vertx,
-                        new DocumentDatabaseServiceImpl(documentDatabase), connectionOptions.name());
-                DatabaseInfo databaseInfo = new DatabaseInfo(documentDatabase, pool, serviceMessageConsumer);
-                databaseInfos.put(connectionOptions.name(), databaseInfo);
-              }
-            }
-            f.complete(documentDatabase);
+    instance(
+        connectionOptions,
+        openHandler,
+        instance -> {
+          Future<DocumentDatabase> future;
+          if (instance.succeeded()) {
+            DocumentDatabase documentDatabase = new DocumentDatabaseImpl(connectionOptions.name(), this);
+            MessageConsumer<JsonObject> serviceMessageConsumer = ProxyHelper
+                .registerService(DocumentDatabaseService.class, vertx,
+                    new DocumentDatabaseServiceImpl(documentDatabase), connectionOptions.name());
+            instance.result().closeHandlers.add(v -> ProxyHelper.unregisterService(serviceMessageConsumer));
+            future = Future.succeededFuture(documentDatabase);
           }
-          catch (Exception e) {
-            f.fail(e);
+          else {
+            future = Future.failedFuture(instance.cause());
           }
-        },
-        instanceHandler
+          instanceHandler.handle(future);
+        }
     );
     return this;
   }
@@ -198,7 +186,7 @@ public class ManagerImpl
                                @Nullable final Handler<OrientGraphNoTx> openHandler,
                                @Nullable final Handler<AsyncResult<GraphDatabase>> instanceHandler)
   {
-    documentInstance(
+    instance(
         connectionOptions,
         db -> {
           OrientGraphNoTx notx = new OrientGraphNoTx(db);
@@ -213,7 +201,12 @@ public class ManagerImpl
         instance -> {
           Future<GraphDatabase> future;
           if (instance.succeeded()) {
-            future = Future.succeededFuture(new GraphDatabaseImpl(connectionOptions.name(), this));
+            GraphDatabase graphDatabase = new GraphDatabaseImpl(connectionOptions.name(), this);
+            MessageConsumer<JsonObject> serviceMessageConsumer = ProxyHelper
+                .registerService(GraphDatabaseService.class, vertx,
+                    new GraphDatabaseServiceImpl(graphDatabase), connectionOptions.name());
+            instance.result().closeHandlers.add(v -> ProxyHelper.unregisterService(serviceMessageConsumer));
+            future = Future.succeededFuture(graphDatabase);
           }
           else {
             future = Future.failedFuture(instance.cause());
@@ -222,6 +215,37 @@ public class ManagerImpl
         }
     );
     return this;
+  }
+
+  private void instance(ConnectionOptions connectionOptions,
+                        @Nullable Handler<ODatabaseDocumentTx> openHandler,
+                        @Nullable Handler<AsyncResult<DatabaseInfo>> instanceHandler)
+  {
+    checkNotNull(connectionOptions);
+    vertx.executeBlocking(
+        f -> {
+          try {
+            DatabaseInfo databaseInfo;
+            synchronized (databaseInfos) {
+              checkArgument(!databaseInfos.containsKey(connectionOptions.name()),
+                  "Database %s already exists", connectionOptions.name());
+              if (databaseInfos.containsKey(connectionOptions.name())) {
+                databaseInfo = databaseInfos.get(connectionOptions.name());
+              }
+              else {
+                OPartitionedDatabasePool databasePool = createDocumentDbPool(connectionOptions, openHandler);
+                databaseInfo = new DatabaseInfo(databasePool);
+                databaseInfos.put(connectionOptions.name(), databaseInfo);
+              }
+            }
+            f.complete(databaseInfo);
+          }
+          catch (Exception e) {
+            f.fail(e);
+          }
+        },
+        instanceHandler
+    );
   }
 
   private void openServer() throws Exception {

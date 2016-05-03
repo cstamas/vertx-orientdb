@@ -11,7 +11,7 @@ import io.vertx.core.json.JsonObject;
 
 /**
  * OrientDB service, registered whenever a {@link DocumentDatabase} documentInstance is created using {@link
- * Manager#instance(ConnectionOptions, Handler, Handler)} method, unregistered when documentInstance closed.
+ * Manager#documentInstance(ConnectionOptions, Handler, Handler)} method, unregistered when documentInstance closed.
  */
 @ProxyGen
 public interface DocumentDatabaseService

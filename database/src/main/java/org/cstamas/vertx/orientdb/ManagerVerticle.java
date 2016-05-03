@@ -2,7 +2,6 @@ package org.cstamas.vertx.orientdb;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
-import org.cstamas.vertx.orientdb.impl.ManagerImpl;
 
 /**
  * OrientDB verticle that manages purely the lifecycle of the orientdb.
@@ -18,7 +17,7 @@ public class ManagerVerticle
 
   @Override
   public void start(final Future<Void> startFuture) throws Exception {
-    this.manager = new ManagerImpl(vertx, ManagerOptions.fromJsonObject(config()));
+    this.manager = Manager.create(vertx, ManagerOptions.fromJsonObject(config()));
     startFuture.complete();
   }
 

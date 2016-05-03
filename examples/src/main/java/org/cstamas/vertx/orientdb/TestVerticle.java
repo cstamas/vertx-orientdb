@@ -28,7 +28,7 @@ public class TestVerticle
         c -> {
           if (c.succeeded()) {
             final Manager manager = managerVerticle.getManager();
-            manager.instance(
+            manager.documentInstance(
                 selectConnectionInfo(manager),
                 db -> {
                   OSchema schema = db.getMetadata().getSchema();
@@ -83,7 +83,7 @@ public class TestVerticle
       return manager.memoryConnection("test").build();
     }
     else if (protocol.equals("remote")) {
-      manager.instance(
+      manager.documentInstance(
           manager.plocalConnection("local_test").build(),
           db -> db.getMetadata().getSchema().createClass("test"),
           null

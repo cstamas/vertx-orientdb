@@ -16,6 +16,7 @@ import com.orientechnologies.orient.core.db.OPartitionedDatabasePool;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.server.OServer;
 import com.orientechnologies.orient.server.config.OServerConfiguration;
+import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -28,9 +29,11 @@ import io.vertx.serviceproxy.ProxyHelper;
 import org.cstamas.vertx.orientdb.ConnectionOptions;
 import org.cstamas.vertx.orientdb.DocumentDatabase;
 import org.cstamas.vertx.orientdb.DocumentDatabaseService;
+import org.cstamas.vertx.orientdb.GraphDatabase;
 import org.cstamas.vertx.orientdb.Manager;
 import org.cstamas.vertx.orientdb.ManagerOptions;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
@@ -91,6 +94,10 @@ public class ManagerImpl
     this.managerOptions = checkNotNull(managerOptions);
     this.databaseInfos = new HashMap<>();
     log.info("OrientDB version " + OConstants.getVersion());
+    open();
+  }
+
+  private void open() {
     try {
       if (managerOptions.isServerEnabled()) {
         openServer();
@@ -150,26 +157,30 @@ public class ManagerImpl
   }
 
   @Override
-  public Manager instance(ConnectionOptions connectionOptions,
-                          @Nullable Handler<ODatabaseDocumentTx> openHandler,
-                          @Nullable Handler<AsyncResult<DocumentDatabase>> instanceHandler)
+  public Manager documentInstance(ConnectionOptions connectionOptions,
+                                  @Nullable Handler<ODatabaseDocumentTx> openHandler,
+                                  @Nullable Handler<AsyncResult<DocumentDatabase>> instanceHandler)
   {
     checkNotNull(connectionOptions);
     vertx.executeBlocking(
         f -> {
           try {
             DocumentDatabase documentDatabase;
-            if (databaseInfos.containsKey(connectionOptions.name())) {
-              documentDatabase = databaseInfos.get(connectionOptions.name()).documentDatabase;
-            }
-            else {
-              OPartitionedDatabasePool pool = createDocumentDbPool(connectionOptions, openHandler);
-              documentDatabase = new DocumentDatabaseImpl(connectionOptions.name(), this);
-              MessageConsumer<JsonObject> serviceMessageConsumer = ProxyHelper
-                  .registerService(DocumentDatabaseService.class, vertx,
-                      new DocumentDatabaseServiceImpl(documentDatabase), connectionOptions.name());
-              DatabaseInfo databaseInfo = new DatabaseInfo(documentDatabase, pool, serviceMessageConsumer);
-              databaseInfos.put(connectionOptions.name(), databaseInfo);
+            synchronized (databaseInfos) {
+              checkArgument(!databaseInfos.containsKey(connectionOptions.name()),
+                  "Database %s already exists", connectionOptions.name());
+              if (databaseInfos.containsKey(connectionOptions.name())) {
+                documentDatabase = databaseInfos.get(connectionOptions.name()).documentDatabase;
+              }
+              else {
+                OPartitionedDatabasePool pool = createDocumentDbPool(connectionOptions, openHandler);
+                documentDatabase = new DocumentDatabaseImpl(connectionOptions.name(), this);
+                MessageConsumer<JsonObject> serviceMessageConsumer = ProxyHelper
+                    .registerService(DocumentDatabaseService.class, vertx,
+                        new DocumentDatabaseServiceImpl(documentDatabase), connectionOptions.name());
+                DatabaseInfo databaseInfo = new DatabaseInfo(documentDatabase, pool, serviceMessageConsumer);
+                databaseInfos.put(connectionOptions.name(), databaseInfo);
+              }
             }
             f.complete(documentDatabase);
           }
@@ -178,6 +189,37 @@ public class ManagerImpl
           }
         },
         instanceHandler
+    );
+    return this;
+  }
+
+  @Override
+  public Manager graphInstance(final ConnectionOptions connectionOptions,
+                               @Nullable final Handler<OrientGraphNoTx> openHandler,
+                               @Nullable final Handler<AsyncResult<GraphDatabase>> instanceHandler)
+  {
+    documentInstance(
+        connectionOptions,
+        db -> {
+          OrientGraphNoTx notx = new OrientGraphNoTx(db);
+          try {
+            openHandler.handle(notx);
+            notx.commit();
+          }
+          finally {
+            notx.shutdown();
+          }
+        },
+        instance -> {
+          Future<GraphDatabase> future;
+          if (instance.succeeded()) {
+            future = Future.succeededFuture(new GraphDatabaseImpl(connectionOptions.name(), this));
+          }
+          else {
+            future = Future.failedFuture(instance.cause());
+          }
+          instanceHandler.handle(future);
+        }
     );
     return this;
   }
@@ -306,10 +348,12 @@ public class ManagerImpl
     vertx.executeBlocking(
         f -> {
           try {
-            DatabaseInfo databaseInfo = databaseInfos.get(name);
-            checkState(databaseInfo != null, "Non-existent documentDatabase: %s", name);
-            databaseInfo.close();
-            databaseInfos.remove(name);
+            synchronized (databaseInfos) {
+              DatabaseInfo databaseInfo = databaseInfos.get(name);
+              checkState(databaseInfo != null, "Non-existent documentDatabase: %s", name);
+              databaseInfo.close();
+              databaseInfos.remove(name);
+            }
             f.complete();
           }
           catch (Exception e) {

@@ -3,6 +3,7 @@ package org.cstamas.vertx.orientdb;
 import javax.annotation.Nullable;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
+import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Closeable;
 import io.vertx.core.Handler;
@@ -16,7 +17,7 @@ public interface Manager
     extends Closeable
 {
   /**
-   * Creates a manager instance using passed in vertx and options. This method will block and may take long time to
+   * Creates a manager instance using passed in Vertx and options. This method will block and may take long time to
    * return.
    */
   static Manager create(Vertx vertx, ManagerOptions managerOptions) {
@@ -41,8 +42,8 @@ public interface Manager
   /**
    * Opens or creates a new named {@link DocumentDatabase} with given {@code name}. Before creating pool, the
    * passed in {@code openHandler} is invoked if not {@code null} to perform possible maintenance, like schema
-   * upgrade/initialization, etc if needed. Instances created by this method are held my manager, so any subsequent
-   * call of this method will access already created/opened instance that was cached quickly.
+   * upgrade/initialization, pre-loading, etc if needed. Instances created by this method are held my manager, so any
+   * subsequent call of this method will access already created/opened documentInstance that was cached quickly.
    *
    * @param connectionOptions the orientdb connection information.
    * @param openHandler       the handler to invoke in single-connection mode, useful to set up schema, upgrade schema
@@ -50,7 +51,23 @@ public interface Manager
    * @param instanceHandler   the handler invoked when documentInstance is constructed, may be {@code null}, as created
    *                          instances are held by the manager, so they can be queries later using this same method.
    */
-  Manager instance(ConnectionOptions connectionOptions,
-                   @Nullable Handler<ODatabaseDocumentTx> openHandler,
-                   @Nullable Handler<AsyncResult<DocumentDatabase>> instanceHandler);
+  Manager documentInstance(ConnectionOptions connectionOptions,
+                           @Nullable Handler<ODatabaseDocumentTx> openHandler,
+                           @Nullable Handler<AsyncResult<DocumentDatabase>> instanceHandler);
+
+  /**
+   * Opens or creates a new named {@link GraphDatabase} with given {@code name}. Before creating pool, the
+   * passed in {@code openHandler} is invoked if not {@code null} to perform possible maintenance, like schema
+   * upgrade/initialization, pre-loading, etc if needed. Instances created by this method are held my manager, so any
+   * subsequent call of this method will access already created/opened documentInstance that was cached quickly.
+   *
+   * @param connectionOptions the orientdb connection information.
+   * @param openHandler       the handler to invoke in single-connection mode, useful to set up schema, upgrade schema
+   *                          or so, if needed, may be {@code null}.
+   * @param instanceHandler   the handler invoked when documentInstance is constructed, may be {@code null}, as created
+   *                          instances are held by the manager, so they can be queries later using this same method.
+   */
+  Manager graphInstance(ConnectionOptions connectionOptions,
+                        @Nullable Handler<OrientGraphNoTx> openHandler,
+                        @Nullable Handler<AsyncResult<GraphDatabase>> instanceHandler);
 }

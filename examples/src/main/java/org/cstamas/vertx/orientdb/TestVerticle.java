@@ -7,7 +7,6 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
-import org.cstamas.vertx.orientdb.Manager.ConnectionInfo;
 
 /**
  * OrientDB test verticle.
@@ -29,7 +28,7 @@ public class TestVerticle
         c -> {
           if (c.succeeded()) {
             final Manager manager = managerVerticle.getManager();
-            manager.documentInstance(
+            manager.instance(
                 selectConnectionInfo(manager),
                 db -> {
                   OSchema schema = db.getMetadata().getSchema();
@@ -75,21 +74,21 @@ public class TestVerticle
     super.start(startFuture);
   }
 
-  private ConnectionInfo selectConnectionInfo(final Manager manager) {
+  private ConnectionOptions selectConnectionInfo(final Manager manager) {
     String protocol = config().getString("protocol", "plocal");
     if (protocol.equals("plocal")) {
-      return manager.plocalConnection("test");
+      return manager.plocalConnection("test").build();
     }
     else if (protocol.equals("memory")) {
-      return manager.memoryConnection("test");
+      return manager.memoryConnection("test").build();
     }
     else if (protocol.equals("remote")) {
-      manager.documentInstance(manager.plocalConnection(
-          "local_test"),
+      manager.instance(
+          manager.plocalConnection("local_test").build(),
           db -> db.getMetadata().getSchema().createClass("test"),
           null
       );
-      return manager.remoteConnection("test", "localhost", "local_test", "admin", "admin");
+      return manager.remoteConnection("test", "localhost", "local_test").build();
     }
     else {
       throw new IllegalArgumentException("Unknown protocol: " + protocol);

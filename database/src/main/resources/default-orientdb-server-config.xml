@@ -10,8 +10,8 @@
         <handler class="com.orientechnologies.orient.server.hazelcast.OHazelcastPlugin">
             <parameters>
                 <parameter value="${distributed}" name="enabled"/>
-                <parameter value="${ORIENTDB_HOME}/config/default-distributed-db-config.json" name="configuration.db.default"/>
-                <parameter value="${ORIENTDB_HOME}/config/hazelcast.xml" name="configuration.hazelcast"/>
+                <parameter value="${ORIENTDB_HOME}/config/default-distributed-db-config.json" name="managerOptions.db.default"/>
+                <parameter value="${ORIENTDB_HOME}/config/hazelcast.xml" name="managerOptions.hazelcast"/>
             </parameters>
         </handler>
         <handler class="com.orientechnologies.orient.server.handler.OJMXPlugin">

@@ -1,12 +1,7 @@
 package org.cstamas.vertx.orientdb;
 
-import java.io.IOException;
-
-import com.google.common.base.Throwables;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Context;
 import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import org.cstamas.vertx.orientdb.impl.ManagerImpl;
 
 /**
@@ -22,26 +17,9 @@ public class ManagerVerticle
   }
 
   @Override
-  public void init(final Vertx vertx, final Context context) {
-    super.init(vertx, context);
-    try {
-      this.manager = new ManagerImpl(vertx, Configuration.fromJsonObject(context.config()));
-    }
-    catch (IOException e) {
-      throw Throwables.propagate(e);
-    }
-  }
-
-  @Override
   public void start(final Future<Void> startFuture) throws Exception {
-    manager.open(v -> {
-      if (v.succeeded()) {
-        startFuture.complete();
-      }
-      else {
-        startFuture.fail(v.cause());
-      }
-    });
+    this.manager = new ManagerImpl(vertx, ManagerOptions.fromJsonObject(config()));
+    startFuture.complete();
   }
 
   @Override

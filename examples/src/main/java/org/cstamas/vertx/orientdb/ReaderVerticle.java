@@ -9,7 +9,7 @@ import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.cstamas.vertx.orientdb.DocumentDatabase.ResultHandler;
+import org.cstamas.vertx.orientdb.OrientUtils.ResultHandler;
 
 /**
  * OrientDB test verticle.
@@ -29,29 +29,31 @@ public class ReaderVerticle
   public void start(final Future<Void> startFuture) throws Exception {
     vertx.eventBus().consumer("read",
         (Message<JsonObject> m) -> {
-          documentDatabase.select(
-              new ResultHandler<ODocument>()
-              {
-                ArrayList<String> arrayList = new ArrayList<>();
+          documentDatabase.exec(
+              OrientUtils.nonBlockingQuery(
+                  new ResultHandler<ODocument>()
+                  {
+                    ArrayList<String> arrayList = new ArrayList<>();
 
-                @Override
-                public boolean handle(final ODocument doc) {
-                  arrayList.add(doc.field("name"));
-                  return true;
-                }
+                    @Override
+                    public boolean handle(final ODocument doc) {
+                      arrayList.add(doc.field("name"));
+                      return true;
+                    }
 
-                @Override
-                public void failure(final Throwable t) {
-                  t.printStackTrace();
-                }
+                    @Override
+                    public void failure(final Throwable t) {
+                      t.printStackTrace();
+                    }
 
-                @Override
-                public void end() {
-                  log.info("List size=" + arrayList.size());
-                }
-              },
-              "select from test",
-              null
+                    @Override
+                    public void end() {
+                      log.info("List size=" + arrayList.size());
+                    }
+                  },
+                  "select from test",
+                  null
+              )
           );
         }
     );

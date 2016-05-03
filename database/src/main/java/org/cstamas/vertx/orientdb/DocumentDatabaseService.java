@@ -8,11 +8,10 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import org.cstamas.vertx.orientdb.Manager.ConnectionInfo;
 
 /**
  * OrientDB service, registered whenever a {@link DocumentDatabase} documentInstance is created using {@link
- * Manager#documentInstance(ConnectionInfo, Handler, Handler)}  method, unregistered when documentInstance closed.
+ * Manager#instance(ConnectionOptions, Handler, Handler)} method, unregistered when documentInstance closed.
  */
 @ProxyGen
 public interface DocumentDatabaseService

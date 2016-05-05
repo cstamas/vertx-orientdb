@@ -1,4 +1,4 @@
-package org.cstamas.vertx.orientdb.impl;
+package org.cstamas.vertx.orientdb.examples.service.impl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,7 +12,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import org.cstamas.vertx.orientdb.DocumentDatabase;
-import org.cstamas.vertx.orientdb.DocumentDatabaseService;
+import org.cstamas.vertx.orientdb.examples.service.DocumentDatabaseService;
 
 /**
  * Default implementation.

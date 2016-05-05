@@ -23,16 +23,11 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.MessageConsumer;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.serviceproxy.ProxyHelper;
 import org.cstamas.vertx.orientdb.ConnectionOptions;
 import org.cstamas.vertx.orientdb.DocumentDatabase;
-import org.cstamas.vertx.orientdb.DocumentDatabaseService;
 import org.cstamas.vertx.orientdb.GraphDatabase;
-import org.cstamas.vertx.orientdb.GraphDatabaseService;
 import org.cstamas.vertx.orientdb.Manager;
 import org.cstamas.vertx.orientdb.ManagerOptions;
 
@@ -166,10 +161,6 @@ public class ManagerImpl
           Future<DocumentDatabase> future;
           if (instance.succeeded()) {
             DocumentDatabase documentDatabase = new DocumentDatabaseImpl(connectionOptions.name(), this);
-            MessageConsumer<JsonObject> serviceMessageConsumer = ProxyHelper
-                .registerService(DocumentDatabaseService.class, vertx,
-                    new DocumentDatabaseServiceImpl(documentDatabase), connectionOptions.name());
-            instance.result().closeHandlers.add(v -> ProxyHelper.unregisterService(serviceMessageConsumer));
             future = Future.succeededFuture(documentDatabase);
           }
           else {
@@ -204,10 +195,6 @@ public class ManagerImpl
           Future<GraphDatabase> future;
           if (instance.succeeded()) {
             GraphDatabase graphDatabase = new GraphDatabaseImpl(connectionOptions.name(), this);
-            MessageConsumer<JsonObject> serviceMessageConsumer = ProxyHelper
-                .registerService(GraphDatabaseService.class, vertx,
-                    new GraphDatabaseServiceImpl(graphDatabase), connectionOptions.name());
-            instance.result().closeHandlers.add(v -> ProxyHelper.unregisterService(serviceMessageConsumer));
             future = Future.succeededFuture(graphDatabase);
           }
           else {

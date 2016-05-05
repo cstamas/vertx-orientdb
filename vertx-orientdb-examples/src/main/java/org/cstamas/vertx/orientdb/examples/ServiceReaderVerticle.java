@@ -1,4 +1,4 @@
-package org.cstamas.vertx.orientdb;
+package org.cstamas.vertx.orientdb.examples;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
@@ -6,6 +6,7 @@ import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.cstamas.vertx.orientdb.examples.service.DocumentDatabaseService;
 
 /**
  * OrientDB test verticle.

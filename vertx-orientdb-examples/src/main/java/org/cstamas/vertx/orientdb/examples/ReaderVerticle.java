@@ -1,4 +1,4 @@
-package org.cstamas.vertx.orientdb;
+package org.cstamas.vertx.orientdb.examples;
 
 import java.util.ArrayList;
 
@@ -9,6 +9,8 @@ import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.cstamas.vertx.orientdb.DocumentDatabase;
+import org.cstamas.vertx.orientdb.OrientUtils;
 import org.cstamas.vertx.orientdb.OrientUtils.ResultHandler;
 
 /**

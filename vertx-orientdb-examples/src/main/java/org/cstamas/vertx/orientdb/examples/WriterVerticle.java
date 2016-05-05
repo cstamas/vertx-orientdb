@@ -1,4 +1,4 @@
-package org.cstamas.vertx.orientdb;
+package org.cstamas.vertx.orientdb.examples;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.record.impl.ODocument;
@@ -8,6 +8,7 @@ import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.cstamas.vertx.orientdb.DocumentDatabase;
 
 /**
  * OrientDB test verticle.

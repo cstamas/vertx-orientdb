@@ -19,16 +19,6 @@
     </dependency>
 
     <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-service-proxy</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-codegen</artifactId>
-    </dependency>
-
-    <dependency>
       <groupId>com.orientechnologies</groupId>
       <artifactId>orientdb-client</artifactId>
     </dependency>
@@ -46,11 +36,6 @@
     <dependency>
       <groupId>com.orientechnologies</groupId>
       <artifactId>orientdb-server</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>com.tinkerpop.gremlin</groupId>
-      <artifactId>gremlin-groovy</artifactId>
     </dependency>
 
     <dependency>
@@ -75,22 +60,4 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>io.takari.maven.plugins</groupId>
-        <artifactId>takari-lifecycle-plugin</artifactId>
-        <configuration>
-          <proc>procEX</proc>
-          <annotationProcessors>
-            <annotationProcessor>io.vertx.codegen.CodeGenProcessor</annotationProcessor>
-          </annotationProcessors>
-          <annotationProcessorOptions>
-            <outputDirectory>${project.basedir}/src/main</outputDirectory>
-          </annotationProcessorOptions>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 </project>

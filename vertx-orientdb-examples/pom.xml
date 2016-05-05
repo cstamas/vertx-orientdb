@@ -15,7 +15,17 @@
   <dependencies>
     <dependency>
       <groupId>org.cstamas.vertx.orientdb</groupId>
-      <artifactId>database</artifactId>
+      <artifactId>vertx-orientdb</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.orientechnologies</groupId>
+      <artifactId>orientdb-core</artifactId>
     </dependency>
 
     <dependency>

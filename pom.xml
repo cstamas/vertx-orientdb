@@ -49,13 +49,13 @@
       <!-- vertx-orient modules -->
       <dependency>
         <groupId>org.cstamas.vertx.orientdb</groupId>
-        <artifactId>database</artifactId>
+        <artifactId>vertx-orientdb</artifactId>
         <version>${project.version}</version>
       </dependency>
 
       <dependency>
         <groupId>org.cstamas.vertx.orientdb</groupId>
-        <artifactId>examples</artifactId>
+        <artifactId>vertx-orientdb-examples</artifactId>
         <version>${project.version}</version>
       </dependency>
 

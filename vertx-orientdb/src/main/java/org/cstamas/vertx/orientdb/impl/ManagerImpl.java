@@ -175,7 +175,9 @@ public class ManagerImpl
           else {
             future = Future.failedFuture(instance.cause());
           }
-          instanceHandler.handle(future);
+          if (instanceHandler != null) {
+            instanceHandler.handle(future);
+          }
         }
     );
     return this;
@@ -211,7 +213,9 @@ public class ManagerImpl
           else {
             future = Future.failedFuture(instance.cause());
           }
-          instanceHandler.handle(future);
+          if (instanceHandler != null) {
+            instanceHandler.handle(future);
+          }
         }
     );
     return this;

@@ -44,6 +44,8 @@ public interface Manager
    * passed in {@code openHandler} is invoked if not {@code null} to perform possible maintenance, like schema
    * upgrade/initialization, pre-loading, etc if needed. Instances created by this method are held my manager, so any
    * subsequent call of this method will access already created/opened documentInstance that was cached quickly.
+   * Instances are cached, hence any subsequent call will do just "get from cache", where {@code openHandler} will not
+   * be invoked, and {@code instanceHandler} will receive the previously created instance.
    *
    * @param connectionOptions the orientdb connection information.
    * @param openHandler       the handler to invoke in single-connection mode, useful to set up schema, upgrade schema
@@ -60,6 +62,8 @@ public interface Manager
    * passed in {@code openHandler} is invoked if not {@code null} to perform possible maintenance, like schema
    * upgrade/initialization, pre-loading, etc if needed. Instances created by this method are held my manager, so any
    * subsequent call of this method will access already created/opened documentInstance that was cached quickly.
+   * Instances are cached, hence any subsequent call will do just "get from cache", where {@code openHandler} will not
+   * be invoked, and {@code instanceHandler} will receive the previously created instance.
    *
    * @param connectionOptions the orientdb connection information.
    * @param openHandler       the handler to invoke in single-connection mode, useful to set up schema, upgrade schema

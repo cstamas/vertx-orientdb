@@ -2,9 +2,12 @@
 
 Integrates [OrientDB](http://orientdb.com/docs/2.1/index.html) with Vert.x.
 
+Note: build depends on https://github.com/vert-x3/vertx-codegen/issues/81 as it uses Takari Lifecycle
+with JDT compiler. Hence, CI build is failing for now. To build it locally, build the PR for the mentioned issue.
+
 [![wercker status](https://app.wercker.com/status/ba9343552def99973ea803d929ba7c51/m "wercker status")](https://app.wercker.com/project/bykey/ba9343552def99973ea803d929ba7c51)
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.cstamas.vertx.orientdb/vertx-orientdb/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.cstamas.vertx.orientdb/vertx-orientdb)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.cstamas.vertx.orientdb/vertx-orientdb/badge.svg?subject=org.cstamas.vertx.orientdb:vertx-orientdb)](https://maven-badges.herokuapp.com/maven-central/org.cstamas.vertx.orientdb/vertx-orientdb)
 
 Integration configuration:
 

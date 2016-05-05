@@ -8,6 +8,7 @@ import io.vertx.codegen.annotations.ProxyGen;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.serviceproxy.ProxyHelper;
 import org.cstamas.vertx.orientdb.ConnectionOptions;
 import org.cstamas.vertx.orientdb.GraphDatabase;
 import org.cstamas.vertx.orientdb.Manager;
@@ -20,9 +21,11 @@ import org.cstamas.vertx.orientdb.Manager;
 public interface GraphDatabaseService
 {
   static GraphDatabaseService createProxy(Vertx vertx, String address) {
-    return new GraphDatabaseServiceVertxEBProxy(vertx, address);
+    return ProxyHelper.createProxy(GraphDatabaseService.class, vertx, address);
   }
 
   @Fluent
-  GraphDatabaseService gremlinScript(Map<String, String> params, String script, Handler<AsyncResult<List<String>>> handler);
+  GraphDatabaseService gremlinScript(Map<String, String> params,
+                                     String script,
+                                     Handler<AsyncResult<List<String>>> handler);
 }

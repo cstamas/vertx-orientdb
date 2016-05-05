@@ -8,6 +8,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
+import io.vertx.serviceproxy.ProxyHelper;
 import org.cstamas.vertx.orientdb.ConnectionOptions;
 import org.cstamas.vertx.orientdb.DocumentDatabase;
 import org.cstamas.vertx.orientdb.Manager;
@@ -20,7 +21,7 @@ import org.cstamas.vertx.orientdb.Manager;
 public interface DocumentDatabaseService
 {
   static DocumentDatabaseService createProxy(Vertx vertx, String address) {
-    return new DocumentDatabaseServiceVertxEBProxy(vertx, address);
+    return ProxyHelper.createProxy(DocumentDatabaseService.class, vertx, address);
   }
 
   @Fluent

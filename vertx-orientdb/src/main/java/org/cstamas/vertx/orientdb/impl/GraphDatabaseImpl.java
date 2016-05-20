@@ -34,7 +34,7 @@ public class GraphDatabaseImpl
       if (adb.succeeded()) {
         OrientGraph graph = new OrientGraph(adb.result());
         try {
-          handler.handle(Future.succeededFuture());
+          handler.handle(Future.succeededFuture(graph));
         }
         finally {
           graph.shutdown();

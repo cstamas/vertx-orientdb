@@ -29,6 +29,11 @@
 
     <dependency>
       <groupId>com.orientechnologies</groupId>
+      <artifactId>orientdb-tools</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.orientechnologies</groupId>
       <artifactId>orientdb-graphdb</artifactId>
     </dependency>
 

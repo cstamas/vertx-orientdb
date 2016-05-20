@@ -32,7 +32,7 @@
 
   <properties>
     <vertx.version>3.2.1</vertx.version>
-    <orientdb.version>2.1.16</orientdb.version>
+    <orientdb.version>2.1.17</orientdb.version>
     <tinkerpop.version>2.6.0</tinkerpop.version> <!-- Keep in sync with OrientDB graph! -->
     <slf4j.version>1.7.21</slf4j.version>
     <logback.version>1.1.7</logback.version>
@@ -87,6 +87,12 @@
       <dependency>
         <groupId>com.orientechnologies</groupId>
         <artifactId>orientdb-core</artifactId>
+        <version>${orientdb.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.orientechnologies</groupId>
+        <artifactId>orientdb-tools</artifactId>
         <version>${orientdb.version}</version>
       </dependency>
 

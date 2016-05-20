@@ -345,7 +345,7 @@ public class ManagerImpl
         f -> {
           try {
             DatabaseInfo databaseInfo = databaseInfos.get(name);
-            checkState(databaseInfo != null, "Non-existent documentDatabase: %s", name);
+            checkState(databaseInfo != null, "Non-existent database: %s", name);
             OPartitionedDatabasePool pool = databaseInfo.databasePool;
             try (ODatabaseDocumentTx db = pool.acquire()) {
               handler.handle(Future.succeededFuture(db));

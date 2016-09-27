@@ -1,6 +1,7 @@
 package org.cstamas.vertx.orientdb;
 
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
 
 import com.orientechnologies.common.concur.ONeedRetryException;
 import com.orientechnologies.orient.core.command.OCommandResultListener;
@@ -10,6 +11,7 @@ import com.orientechnologies.orient.core.sql.query.OSQLNonBlockingQuery;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.streams.ReadStream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -126,6 +128,89 @@ public class OrientUtils
       }
       else {
         handler.failure(adb.cause());
+      }
+    };
+  }
+
+  private static class OrientReadStream<T>
+      implements ReadStream<T>, OCommandResultListener
+  {
+    private ArrayBlockingQueue<T> queue = new ArrayBlockingQueue<>(16);
+
+    private Handler<T> dataHandler;
+
+    private Handler<Void> endHandler;
+
+    private Handler<Throwable> exceptionHandler;
+
+    @Override
+    public ReadStream<T> exceptionHandler(final Handler<Throwable> handler) {
+      this.exceptionHandler = handler;
+      return this;
+    }
+
+    @Override
+    public ReadStream<T> handler(final Handler<T> handler) {
+      this.dataHandler = handler;
+      return this;
+    }
+
+    @Override
+    public ReadStream<T> pause() {
+      return this;
+    }
+
+    @Override
+    public ReadStream<T> resume() {
+      return this;
+    }
+
+    @Override
+    public ReadStream<T> endHandler(final Handler<Void> handler) {
+      this.endHandler = handler;
+      return this;
+    }
+
+    //
+
+    @Override
+    public boolean result(final Object o) {
+      dataHandler.handle((T) o);
+      return true;
+    }
+
+    @Override
+    public void end() {
+      if (endHandler != null) {
+        endHandler.handle(null);
+      }
+    }
+  }
+
+  /**
+   * Handler that uses OrientDB {@link OSQLNonBlockingQuery} to execute SELECT query, to be used with {@link
+   * DocumentDatabase#exec(Handler)} method.
+   */
+  public static <T> Handler<AsyncResult<ODatabaseDocumentTx>> nonBlockingQuery(final String sql,
+                                                                               final Map<String, Object> params,
+                                                                               final Handler<AsyncResult<ReadStream<T>>> handler)
+  {
+    checkNotNull(sql);
+    checkNotNull(handler);
+    return adb -> {
+      if (adb.succeeded()) {
+        OrientReadStream<T> stream = new OrientReadStream<>();
+        OSQLNonBlockingQuery<ODocument> query = new OSQLNonBlockingQuery<>(sql, stream);
+        try {
+          adb.result().command(query).execute(params);
+          handler.handle(Future.succeededFuture(stream));
+        }
+        catch (Exception e) {
+          handler.handle(Future.failedFuture(e));
+        }
+      }
+      else {
+        handler.handle(Future.failedFuture(adb.cause()));
       }
     };
   }

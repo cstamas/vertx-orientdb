@@ -62,9 +62,7 @@ Examples found in the `examples` subproject.
 TBD:
 * threading: orient DBTx instance heavily relies on ThreadLocals, so thread performing db.acquire (hence blocking)
 will be the one binding it. This means something must be done with it, as currently passes in Handler will NOT
-run on it's context!
-* remote connection still has problems, might be that service is not suited for it?
-* graph database
+run on it's context! (um, in short: am unsure is current threading OK/correct or not)
 * too much to enlist here :)
 
 Have fun!

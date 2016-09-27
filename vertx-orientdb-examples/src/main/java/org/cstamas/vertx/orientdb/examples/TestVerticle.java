@@ -67,13 +67,13 @@ public class TestVerticle
                   vertx.eventBus().publish("write", new JsonObject().put("name", "foo").put("value", t));
                 }
             );
+            startFuture.complete();
           }
           else {
-            instance.cause().printStackTrace();
+            startFuture.fail(instance.cause());
           }
         }
     );
-    super.start(startFuture);
   }
 
   private ConnectionOptions selectConnectionInfo() {

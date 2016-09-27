@@ -3,7 +3,7 @@
 Integrates [OrientDB](http://orientdb.com/docs/2.1/index.html) with Vert.x.
 
 Note: build depends on https://github.com/vert-x3/vertx-codegen/issues/81 as it uses Takari Lifecycle
-with JDT compiler. Hence, CI build is failing for now. To build it locally, build the PR for the mentioned issue.
+with JDT compiler! Hence, must use Vert.x 3.3.2+ if you are building this project.
 
 [![wercker status](https://app.wercker.com/status/ba9343552def99973ea803d929ba7c51/m "wercker status")](https://app.wercker.com/project/bykey/ba9343552def99973ea803d929ba7c51)
 
@@ -14,7 +14,7 @@ Integration configuration:
 ```
 {
   "orientHome" : "orient",
-  "serverEnabled" : true
+  "serverEnabled" : false
 }
 ```
 

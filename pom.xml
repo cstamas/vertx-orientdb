@@ -9,7 +9,7 @@
 
   <groupId>org.cstamas.vertx.orientdb</groupId>
   <artifactId>parent</artifactId>
-  <version>1.0.1</version>
+  <version>1.0.2-SNAPSHOT</version>
 
   <packaging>pom</packaging>
 
@@ -22,7 +22,7 @@
     <connection>scm:git:https://github.com/cstamas/vertx-orientdb.git</connection>
     <developerConnection>scm:git:git@github.com:cstamas/vertx-orientdb.git</developerConnection>
     <url>https://github.com/cstamas/vertx-orientdb</url>
-    <tag>parent-1.0.1</tag>
+    <tag>master</tag>
   </scm>
 
   <issueManagement>

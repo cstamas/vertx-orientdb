@@ -1,34 +1,27 @@
 package org.cstamas.vertx.orientdb.examples;
 
 import io.vertx.core.DeploymentOptions;
-import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.SLF4JLogDelegateFactory;
-import org.cstamas.vertx.orientdb.examples.TestVerticle;
+import io.vertx.ext.unit.TestContext;
 import org.junit.Test;
-import org.slf4j.bridge.SLF4JBridgeHandler;
 
 /**
  * Junit test.
  */
 public class WithServerTest
+    extends TestSupport
 {
-  static {
-    System.setProperty("vertx.logger-delegate-factory-class-name", SLF4JLogDelegateFactory.class.getName());
-    SLF4JBridgeHandler.removeHandlersForRootLogger();
-    SLF4JBridgeHandler.install();
-  }
-
   @Test
-  public void withServer() throws Exception {
-    Vertx vertx = Vertx.vertx();
+  public void withServer(TestContext context) throws Exception {
     vertx.deployVerticle(
         TestVerticle.class.getName(),
         new DeploymentOptions().setConfig(
-            new JsonObject().put("serverEnabled", true).put("orientHome", "target/withServer")
+            new JsonObject()
+                .put("serverEnabled", true)
+                .put("orientHome", "target/withServer")
+                .put("name", testName.getMethodName())
         )
     );
-    Thread.sleep(10000);
-    vertx.close();
+    Thread.sleep(5000);
   }
 }

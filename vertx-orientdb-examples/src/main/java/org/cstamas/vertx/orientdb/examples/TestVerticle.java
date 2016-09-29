@@ -1,10 +1,13 @@
 package org.cstamas.vertx.orientdb.examples;
 
+import java.util.Objects;
+
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
+import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.serviceproxy.ProxyHelper;
 import org.cstamas.vertx.orientdb.ConnectionOptions;
@@ -26,9 +29,28 @@ public class TestVerticle
 
   private WriterVerticle writerVerticle;
 
+  private long readPeriodic;
+
+  private long writePeriodic;
+
+  private MessageConsumer<JsonObject> proxy;
+
   @Override
   public void start(final Future<Void> startFuture) throws Exception {
     this.manager = Manager.create(vertx, ManagerOptions.fromJsonObject(config()));
+
+    // fire events that cause READ and WRITE operations
+    readPeriodic = vertx.setPeriodic(50,
+        t -> {
+          vertx.eventBus().publish("read", null);
+        }
+    );
+    writePeriodic = vertx.setPeriodic(50,
+        t -> {
+          long now = System.currentTimeMillis();
+          vertx.eventBus().publish("write", new JsonObject().put("name", String.valueOf(now)).put("value", now));
+        }
+    );
 
     manager.documentInstance(
         selectConnectionInfo(),
@@ -50,23 +72,12 @@ public class TestVerticle
             vertx.deployVerticle(readerVerticle);
 
             // register app specific database service
-            ProxyHelper.registerService(DocumentDatabaseService.class, vertx,
+            proxy = ProxyHelper.registerService(DocumentDatabaseService.class, vertx,
                 new DocumentDatabaseServiceImpl(documentDatabase), "test");
 
             vertx.deployVerticle(ServiceReaderVerticle.class.getName());
             vertx.deployVerticle(ServiceWriterVerticle.class.getName());
 
-            // fire events that cause READ and WRITE operations
-            vertx.setPeriodic(500,
-                t -> {
-                  vertx.eventBus().publish("read", new JsonObject().put("name", "foo").put("value", t));
-                }
-            );
-            vertx.setPeriodic(500,
-                t -> {
-                  vertx.eventBus().publish("write", new JsonObject().put("name", "foo").put("value", t));
-                }
-            );
             startFuture.complete();
           }
           else {
@@ -76,21 +87,31 @@ public class TestVerticle
     );
   }
 
+  @Override
+  public void stop(final Future<Void> stopFuture) throws Exception {
+    ProxyHelper.unregisterService(proxy);
+    vertx.cancelTimer(writePeriodic);
+    vertx.cancelTimer(readPeriodic);
+    super.stop(stopFuture);
+  }
+
   private ConnectionOptions selectConnectionInfo() {
     String protocol = config().getString("protocol", "plocal");
+    String name = Objects.requireNonNull(config().getString("name"));
     if (protocol.equals("plocal")) {
-      return manager.plocalConnection("test").build();
+      return manager.plocalConnection(name).build();
     }
     else if (protocol.equals("memory")) {
-      return manager.memoryConnection("test").build();
+      return manager.memoryConnection(name).build();
     }
     else if (protocol.equals("remote")) {
+      String servername = name + "_server";
       manager.documentInstance(
-          manager.plocalConnection("local_test").build(),
+          manager.plocalConnection(servername).build(),
           db -> db.getMetadata().getSchema().createClass("test"),
           null
       );
-      return manager.remoteConnection("test", "localhost", "local_test").build();
+      return manager.remoteConnection(name, "localhost", servername).build();
     }
     else {
       throw new IllegalArgumentException("Unknown protocol: " + protocol);

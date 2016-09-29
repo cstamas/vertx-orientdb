@@ -31,7 +31,7 @@
   </issueManagement>
 
   <properties>
-    <vertx.version>3.3.3</vertx.version>
+    <vertx.version>3.3.2</vertx.version>
     <orientdb.version>2.1.24</orientdb.version>
     <tinkerpop.version>2.6.0</tinkerpop.version> <!-- Keep in sync with OrientDB graph! -->
     <slf4j.version>1.7.21</slf4j.version>

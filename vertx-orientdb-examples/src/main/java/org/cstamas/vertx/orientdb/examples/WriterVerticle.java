@@ -5,6 +5,7 @@ import com.orientechnologies.orient.core.record.impl.ODocument;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.eventbus.Message;
+import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -20,13 +21,15 @@ public class WriterVerticle
 
   private final DocumentDatabase documentDatabase;
 
+  private MessageConsumer<JsonObject> consumer;
+
   public WriterVerticle(final DocumentDatabase documentDatabase) {
     this.documentDatabase = documentDatabase;
   }
 
   @Override
   public void start(final Future<Void> startFuture) throws Exception {
-    vertx.eventBus().consumer("write",
+    consumer = vertx.eventBus().consumer("write",
         (Message<JsonObject> m) -> {
           documentDatabase.exec(adb -> {
                 if (adb.succeeded()) {
@@ -48,5 +51,11 @@ public class WriterVerticle
         }
     );
     super.start(startFuture);
+  }
+
+  @Override
+  public void stop(final Future<Void> stopFuture) throws Exception {
+    consumer.unregister();
+    super.stop(stopFuture);
   }
 }

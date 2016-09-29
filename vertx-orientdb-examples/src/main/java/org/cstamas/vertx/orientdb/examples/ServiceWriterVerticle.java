@@ -3,6 +3,7 @@ package org.cstamas.vertx.orientdb.examples;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.eventbus.Message;
+import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -16,10 +17,12 @@ public class ServiceWriterVerticle
 {
   private static final Logger log = LoggerFactory.getLogger(ServiceWriterVerticle.class);
 
+  private MessageConsumer<JsonObject> consumer;
+
   @Override
   public void start(final Future<Void> startFuture) throws Exception {
     DocumentDatabaseService documentDatabaseService = DocumentDatabaseService.createProxy(vertx, "test");
-    vertx.eventBus().consumer("write",
+    consumer = vertx.eventBus().consumer("write",
         (Message<JsonObject> m) -> {
           documentDatabaseService.insert(
               "test",
@@ -36,5 +39,11 @@ public class ServiceWriterVerticle
         }
     );
     super.start(startFuture);
+  }
+
+  @Override
+  public void stop(final Future<Void> stopFuture) throws Exception {
+    consumer.unregister();
+    super.stop(stopFuture);
   }
 }

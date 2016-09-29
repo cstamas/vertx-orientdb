@@ -9,9 +9,8 @@ import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.streams.ReadStream;
 import org.cstamas.vertx.orientdb.DocumentDatabase;
-import org.cstamas.vertx.orientdb.OrientUtils;
-import org.cstamas.vertx.orientdb.OrientUtils.ResultHandler;
 
 /**
  * OrientDB test verticle.
@@ -31,31 +30,24 @@ public class ReaderVerticle
   public void start(final Future<Void> startFuture) throws Exception {
     vertx.eventBus().consumer("read",
         (Message<JsonObject> m) -> {
-          documentDatabase.exec(
-              OrientUtils.nonBlockingQuery(
-                  new ResultHandler<ODocument>()
-                  {
-                    ArrayList<String> arrayList = new ArrayList<>();
-
-                    @Override
-                    public boolean handle(final ODocument doc) {
-                      arrayList.add(doc.field("name"));
-                      return true;
-                    }
-
-                    @Override
-                    public void failure(final Throwable t) {
-                      t.printStackTrace();
-                    }
-
-                    @Override
-                    public void end() {
-                      log.info("List size=" + arrayList.size());
-                    }
-                  },
-                  "select from test",
-                  null
-              )
+          documentDatabase.<ODocument>stream(
+              "select from test",
+              null,
+              astream -> {
+                if (astream.succeeded()) {
+                  ArrayList<String> arrayList = new ArrayList<>();
+                  ReadStream<ODocument> stream = astream.result();
+                  stream.endHandler(v -> {
+                    log.info("List size=" + arrayList.size());
+                  });
+                  stream.handler(d -> {
+                    arrayList.add(d.field("name"));
+                  });
+                }
+                else {
+                  log.error("Stream failed", astream.cause());
+                }
+              }
           );
         }
     );

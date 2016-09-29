@@ -4,33 +4,23 @@ import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import org.cstamas.vertx.orientdb.GraphDatabase;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Default implementation.
  */
 public class GraphDatabaseImpl
+    extends DatabaseSupport<GraphDatabase, OrientGraph>
     implements GraphDatabase
 {
-  private final String name;
-
-  private final ManagerImpl manager;
-
-  public GraphDatabaseImpl(final String name, final ManagerImpl manager) {
-    this.name = checkNotNull(name);
-    this.manager = checkNotNull(manager);
-  }
-
-  @Override
-  public String getName() {
-    return name;
+  public GraphDatabaseImpl(final Vertx vertx, final String name, final ManagerImpl manager) {
+    super(vertx, name, manager);
   }
 
   @Override
   public GraphDatabase exec(final Handler<AsyncResult<OrientGraph>> handler) {
-    manager.exec(getName(), adb -> {
+    manager.exec(vertx.getOrCreateContext(), getName(), adb -> {
       if (adb.succeeded()) {
         OrientGraph graph = new OrientGraph(adb.result());
         try {
@@ -45,10 +35,5 @@ public class GraphDatabaseImpl
       }
     });
     return this;
-  }
-
-  @Override
-  public void close(final Handler<AsyncResult<Void>> completionHandler) {
-    manager.close(getName(), completionHandler);
   }
 }

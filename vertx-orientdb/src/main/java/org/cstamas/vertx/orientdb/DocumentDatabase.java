@@ -4,7 +4,6 @@ import java.util.Map;
 
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Closeable;
 import io.vertx.core.Handler;
 import io.vertx.core.streams.ReadStream;
 
@@ -12,13 +11,8 @@ import io.vertx.core.streams.ReadStream;
  * OrientDB pooled document database instance.
  */
 public interface DocumentDatabase
-    extends Closeable
+    extends Database<DocumentDatabase, ODatabaseDocumentTx>
 {
-  /**
-   * Returns the instance name.
-   */
-  String getName();
-
   /**
    * Executes handler with pooled {@link ODatabaseDocumentTx} connection.
    */

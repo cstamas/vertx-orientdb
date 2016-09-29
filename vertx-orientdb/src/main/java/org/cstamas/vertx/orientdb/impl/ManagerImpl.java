@@ -20,6 +20,7 @@ import com.orientechnologies.orient.server.OServer;
 import com.orientechnologies.orient.server.config.OServerConfiguration;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -160,7 +161,7 @@ public class ManagerImpl
         instance -> {
           Future<DocumentDatabase> future;
           if (instance.succeeded()) {
-            DocumentDatabase documentDatabase = new DocumentDatabaseImpl(connectionOptions.name(), this);
+            DocumentDatabase documentDatabase = new DocumentDatabaseImpl(vertx, connectionOptions.name(), this);
             future = Future.succeededFuture(documentDatabase);
           }
           else {
@@ -194,7 +195,7 @@ public class ManagerImpl
         instance -> {
           Future<GraphDatabase> future;
           if (instance.succeeded()) {
-            GraphDatabase graphDatabase = new GraphDatabaseImpl(connectionOptions.name(), this);
+            GraphDatabase graphDatabase = new GraphDatabaseImpl(vertx, connectionOptions.name(), this);
             future = Future.succeededFuture(graphDatabase);
           }
           else {
@@ -340,8 +341,8 @@ public class ManagerImpl
     );
   }
 
-  void exec(final String name, final Handler<AsyncResult<ODatabaseDocumentTx>> handler) {
-    vertx.executeBlocking(
+  void exec(final Context context, final String name, final Handler<AsyncResult<ODatabaseDocumentTx>> handler) {
+    context.executeBlocking(
         f -> {
           try {
             DatabaseInfo databaseInfo = databaseInfos.get(name);
@@ -359,8 +360,8 @@ public class ManagerImpl
     );
   }
 
-  synchronized void close(final String name, final Handler<AsyncResult<Void>> handler) {
-    vertx.executeBlocking(
+  synchronized void close(final Context context, final String name, final Handler<AsyncResult<Void>> handler) {
+    context.executeBlocking(
         f -> {
           try {
             synchronized (databaseInfos) {

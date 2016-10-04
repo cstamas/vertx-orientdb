@@ -1,13 +1,12 @@
 package org.cstamas.vertx.orientdb;
 
+import java.util.Objects;
+
 import com.orientechnologies.common.concur.ONeedRetryException;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * OrientDB utility handlers.
@@ -22,7 +21,7 @@ public final class OrientUtils
    * Wraps passed in handler into a transaction.
    */
   public static Handler<AsyncResult<ODatabaseDocumentTx>> tx(final Handler<AsyncResult<ODatabaseDocumentTx>> handler) {
-    checkNotNull(handler);
+    Objects.requireNonNull(handler);
     return adb -> {
       if (adb.succeeded()) {
         ODatabaseDocumentTx db = adb.result();
@@ -48,8 +47,10 @@ public final class OrientUtils
   public static Handler<AsyncResult<ODatabaseDocumentTx>> retry(final int retries,
                                                                 final Handler<AsyncResult<ODatabaseDocumentTx>> handler)
   {
-    checkArgument(retries > 0);
-    checkNotNull(handler);
+    if (retries < 1) {
+      throw new IllegalArgumentException("Retries must be greater than zero: " + retries);
+    }
+    Objects.requireNonNull(handler);
     return adb -> {
       if (adb.succeeded()) {
         int retry = 0;

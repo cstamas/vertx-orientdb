@@ -4,7 +4,7 @@ import javax.annotation.Nullable;
 
 import io.vertx.core.json.JsonObject;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Options of OrientDB integration. Allows to selectively enable OrientServer (to be able to connect to OrientDB
@@ -32,7 +32,7 @@ public class ManagerOptions
   private final boolean serverEnabled;
 
   public ManagerOptions(final String orientHome, boolean serverEnabled) {
-    this.orientHome = checkNotNull(orientHome);
+    this.orientHome = requireNonNull(orientHome);
     this.serverEnabled = serverEnabled;
   }
 

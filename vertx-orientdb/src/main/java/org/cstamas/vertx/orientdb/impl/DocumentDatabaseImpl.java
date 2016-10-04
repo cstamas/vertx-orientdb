@@ -16,7 +16,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.streams.ReadStream;
 import org.cstamas.vertx.orientdb.DocumentDatabase;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Default implementation.
@@ -40,8 +40,8 @@ public class DocumentDatabaseImpl
                                      final Map<String, Object> params,
                                      final Handler<AsyncResult<ReadStream<T>>> handler)
   {
-    checkNotNull(selectSql);
-    checkNotNull(handler);
+    requireNonNull(selectSql);
+    requireNonNull(handler);
     Context context = vertx.getOrCreateContext();
     manager.exec(vertx.getOrCreateContext(), getName(), adb -> {
       if (adb.succeeded()) {

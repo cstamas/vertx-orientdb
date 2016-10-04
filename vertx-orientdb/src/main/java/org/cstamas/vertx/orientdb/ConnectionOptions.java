@@ -2,7 +2,7 @@ package org.cstamas.vertx.orientdb;
 
 import com.orientechnologies.orient.core.db.OPartitionedDatabasePool;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Orient DB connection options.
@@ -46,10 +46,10 @@ public class ConnectionOptions
                            final int maxPartitionSize,
                            final int maxPoolSize)
   {
-    this.name = checkNotNull(name);
-    this.uri = checkNotNull(uri);
-    this.username = checkNotNull(username);
-    this.password = checkNotNull(password);
+    this.name = requireNonNull(name);
+    this.uri = requireNonNull(uri);
+    this.username = requireNonNull(username);
+    this.password = requireNonNull(password);
     this.maxPartitionSize = maxPartitionSize;
     this.maxPoolSize = maxPoolSize;
   }
@@ -97,8 +97,8 @@ public class ConnectionOptions
     private int maxPoolSize = 64;
 
     public Builder(final String name, final String uri) {
-      this.name = checkNotNull(name);
-      this.uri = checkNotNull(uri);
+      this.name = requireNonNull(name);
+      this.uri = requireNonNull(uri);
     }
 
     public Builder setUsernamePassword(final String username, final String password) {

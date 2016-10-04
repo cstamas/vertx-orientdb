@@ -11,7 +11,6 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import com.google.common.base.Throwables;
 import com.orientechnologies.orient.core.OConstants;
 import com.orientechnologies.orient.core.Orient;
 import com.orientechnologies.orient.core.db.OPartitionedDatabasePool;
@@ -32,9 +31,7 @@ import org.cstamas.vertx.orientdb.GraphDatabase;
 import org.cstamas.vertx.orientdb.Manager;
 import org.cstamas.vertx.orientdb.ManagerOptions;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Default implementation.
@@ -84,8 +81,8 @@ public class ManagerImpl
 
   public ManagerImpl(final Vertx vertx, final ManagerOptions managerOptions)
   {
-    this.vertx = checkNotNull(vertx);
-    this.managerOptions = checkNotNull(managerOptions);
+    this.vertx = requireNonNull(vertx);
+    this.managerOptions = requireNonNull(managerOptions);
     this.databaseInfos = new HashMap<>();
     log.info("OrientDB version " + OConstants.getVersion());
     open();
@@ -104,7 +101,8 @@ public class ManagerImpl
       log.info("OrientDB Manager started");
     }
     catch (Exception e) {
-      throw Throwables.propagate(e);
+      log.error("Could not open database", e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -213,14 +211,15 @@ public class ManagerImpl
                         @Nullable Handler<ODatabaseDocumentTx> openHandler,
                         @Nullable Handler<AsyncResult<DatabaseInfo>> instanceHandler)
   {
-    checkNotNull(connectionOptions);
+    requireNonNull(connectionOptions);
     vertx.executeBlocking(
         f -> {
           try {
             DatabaseInfo databaseInfo;
             synchronized (databaseInfos) {
-              checkArgument(!databaseInfos.containsKey(connectionOptions.name()),
-                  "Database %s already exists", connectionOptions.name());
+              if (databaseInfos.containsKey(connectionOptions.name())) {
+                throw new IllegalArgumentException("Database already exists:" + connectionOptions.name());
+              }
               if (databaseInfos.containsKey(connectionOptions.name())) {
                 databaseInfo = databaseInfos.get(connectionOptions.name());
               }
@@ -346,7 +345,9 @@ public class ManagerImpl
         f -> {
           try {
             DatabaseInfo databaseInfo = databaseInfos.get(name);
-            checkState(databaseInfo != null, "Non-existent database: %s", name);
+            if (databaseInfo == null) {
+              throw new IllegalArgumentException("Non existent database:" + name);
+            }
             OPartitionedDatabasePool pool = databaseInfo.databasePool;
             try (ODatabaseDocumentTx db = pool.acquire()) {
               handler.handle(Future.succeededFuture(db));
@@ -366,7 +367,9 @@ public class ManagerImpl
           try {
             synchronized (databaseInfos) {
               DatabaseInfo databaseInfo = databaseInfos.get(name);
-              checkState(databaseInfo != null, "Non-existent documentDatabase: %s", name);
+              if (databaseInfo == null) {
+                throw new IllegalArgumentException("Non existent database:" + name);
+              }
               databaseInfo.close();
               databaseInfos.remove(name);
             }

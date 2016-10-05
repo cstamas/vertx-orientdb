@@ -278,11 +278,18 @@ public class ManagerImpl
     }
     if (!Files.isRegularFile(orientServerConfig)) {
       Files.createDirectories(orientServerConfig.getParent());
-      try (InputStream defaultConfig = getClass().getClassLoader()
-          .getResourceAsStream("default-orientdb-server-config.xml")) {
-        Files.copy(defaultConfig, orientServerConfig);
-      }
+      copy("defaults/orientdb-server-config.xml", orientServerConfig);
+      copy("defaults/automatic-backup.json", orientServerConfig.getParent().resolve("automatic-backup.json"));
+      copy("defaults/default-distributed-db-config.json", orientServerConfig.getParent().resolve("default-distributed-db-config.json"));
+      copy("defaults/security.json", orientServerConfig.getParent().resolve("security.json"));
       log.info("OrientDB managerOptions defaulted");
+    }
+  }
+
+  private void copy(final String name, final Path target) throws IOException {
+    try (InputStream defaultConfig = getClass().getClassLoader()
+        .getResourceAsStream(name)) {
+      Files.copy(defaultConfig, target);
     }
   }
 

@@ -10,8 +10,9 @@
         <handler class="com.orientechnologies.orient.server.hazelcast.OHazelcastPlugin">
             <parameters>
                 <parameter value="${distributed}" name="enabled"/>
-                <parameter value="${ORIENTDB_HOME}/config/default-distributed-db-config.json" name="managerOptions.db.default"/>
-                <parameter value="${ORIENTDB_HOME}/config/hazelcast.xml" name="managerOptions.hazelcast"/>
+                <parameter value="${ORIENTDB_HOME}/config/default-distributed-db-config.json" name="configuration.db.default"/>
+                <parameter value="${ORIENTDB_HOME}/config/hazelcast.xml" name="configuration.hazelcast"/>
+                <parameter value="node1475657517007" name="nodeName"/>
             </parameters>
         </handler>
         <handler class="com.orientechnologies.orient.server.handler.OJMXPlugin">
@@ -23,14 +24,7 @@
         <handler class="com.orientechnologies.orient.server.handler.OAutomaticBackup">
             <parameters>
                 <parameter value="false" name="enabled"/>
-                <parameter value="4h" name="delay"/>
-                <parameter value="23:00:00" name="firstTime"/>
-                <parameter value="backup" name="target.directory"/>
-                <parameter value="${DBNAME}-${DATE:yyyyMMddHHmmss}.zip" name="target.fileName"/>
-                <parameter value="9" name="compressionLevel"/>
-                <parameter value="1048576" name="bufferSize"/>
-                <parameter value="" name="db.include"/>
-                <parameter value="" name="db.exclude"/>
+                <parameter value="${ORIENTDB_HOME}/config/automatic-backup.json" name="config"/>
             </parameters>
         </handler>
         <handler class="com.orientechnologies.orient.server.handler.OServerSideScriptInterpreter">
@@ -39,23 +33,10 @@
                 <parameter value="SQL" name="allowedLanguages"/>
             </parameters>
         </handler>
-        <handler class="com.orientechnologies.orient.server.token.OrientTokenHandler">
-            <parameters>
-                <parameter value="false" name="enabled"/>
-                <parameter value="" name="oAuth2Key"/>
-                <parameter value="60" name="sessionLength"/>
-                <parameter value="HmacSHA256" name="encryptionAlgorithm"/>
-            </parameters>
-        </handler>
-        <handler class="com.orientechnologies.orient.server.plugin.livequery.OLiveQueryPlugin">
-            <parameters>
-                <parameter value="false" name="enabled"/>
-            </parameters>
-        </handler>
     </handlers>
     <network>
         <sockets>
-            <socket implementation="com.orientechnologies.orient.server.network.OServerSSLSocketFactory" name="ssl">
+            <socket implementation="com.orientechnologies.orient.server.network.OServerTLSSocketFactory" name="ssl">
                 <parameters>
                     <parameter value="false" name="network.ssl.clientAuth"/>
                     <parameter value="config/cert/orientdb.ks" name="network.ssl.keyStore"/>
@@ -64,7 +45,7 @@
                     <parameter value="password" name="network.ssl.trustStorePassword"/>
                 </parameters>
             </socket>
-            <socket implementation="com.orientechnologies.orient.server.network.OServerSSLSocketFactory" name="https">
+            <socket implementation="com.orientechnologies.orient.server.network.OServerTLSSocketFactory" name="https">
                 <parameters>
                     <parameter value="false" name="network.ssl.clientAuth"/>
                     <parameter value="config/cert/orientdb.ks" name="network.ssl.keyStore"/>
@@ -88,6 +69,7 @@
                             <entry value="Cache-Control: max-age=120" name="http.cache:default"/>
                         </parameters>
                     </command>
+                    <command implementation="com.orientechnologies.orient.graph.server.command.OServerCommandGetGephi" pattern="GET|gephi/*" stateful="false"/>
                 </commands>
                 <parameters>
                     <parameter value="utf-8" name="network.http.charset"/>
@@ -98,15 +80,14 @@
     </network>
     <storages/>
     <users>
-        <user resources="*" password="root" name="root"/>
+        <!-- root:root -->
+        <user resources="*" password="{PBKDF2WithHmacSHA256}4F167865523C8BF88BB5972218DC64C2A626E239EE26D394:D3214C54CE2ED829BFC94CEBCF71F50A16030C8B0D3E9C3C:65536" name="root"/>
+        <user resources="connect,server.listDatabases,server.dblist" password="{PBKDF2WithHmacSHA256}F281CF4AD057D2DDB7A45DE47EBEC91F70E11F790B7008E3:162B9A0B1EA8DE30CD16ED3244F0CCA8F954656FD0A3A118:65536" name="guest"/>
     </users>
     <properties>
-        <entry value="false" name="environment.dumpCfgAtStartup"/>
         <entry value="1" name="db.pool.min"/>
         <entry value="50" name="db.pool.max"/>
-        <entry value="true" name="profiler.enabled"/>
-        <entry value="info" name="log.console.level"/>
-        <entry value="fine" name="log.file.level"/>
+        <entry value="false" name="profiler.enabled"/>
     </properties>
-    <isAfterFirstTime>false</isAfterFirstTime>
+    <isAfterFirstTime>true</isAfterFirstTime>
 </orient-server>

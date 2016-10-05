@@ -92,7 +92,7 @@ public class TestVerticle
     ProxyHelper.unregisterService(proxy);
     vertx.cancelTimer(writePeriodic);
     vertx.cancelTimer(readPeriodic);
-    super.stop(stopFuture);
+    manager.close(v -> stopFuture.complete());
   }
 
   private ConnectionOptions selectConnectionInfo() {

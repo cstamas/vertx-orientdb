@@ -43,6 +43,8 @@ public final class OrientUtils
 
   /**
    * Retries {@link Handler} multiple times, usable with OrientDB MVCC and {@link ONeedRetryException}.
+   *
+   * @see <a href="http://orientdb.com/docs/2.2/Java-Multi-Threading.html#multi-version-concurrency-control">MVCC</a>
    */
   public static Handler<AsyncResult<ODatabaseDocumentTx>> retry(final int retries,
                                                                 final Handler<AsyncResult<ODatabaseDocumentTx>> handler)
@@ -61,6 +63,7 @@ public final class OrientUtils
               retry++;
               handler.handle(adb);
               throwable = null;
+              break;
             }
             catch (ONeedRetryException e) {
               // try again

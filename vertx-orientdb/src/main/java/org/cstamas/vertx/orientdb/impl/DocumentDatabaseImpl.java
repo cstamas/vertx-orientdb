@@ -178,5 +178,10 @@ public class DocumentDatabaseImpl
       queue.push(SENTINEL);
       queueSemaphore.release();
     }
+
+    @Override
+    public Object getResult() {
+      return null;
+    }
   }
 }

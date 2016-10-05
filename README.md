@@ -2,6 +2,11 @@
 
 Integrates [OrientDB](http://orientdb.com/docs/2.1/index.html) with Vert.x.
 
+## Branches
+
+* master - uses latest OrientDB 2.2.x
+* vertx-orientdb-1.x - uses OrientDB 2.1.x
+
 Note: build depends on https://github.com/vert-x3/vertx-codegen/issues/81 as it uses Takari Lifecycle
 with JDT compiler! Hence, must use Vert.x 3.3.2+ if you are building this project.
 

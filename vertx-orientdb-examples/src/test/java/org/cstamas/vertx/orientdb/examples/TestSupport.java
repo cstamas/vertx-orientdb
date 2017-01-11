@@ -31,7 +31,7 @@ public abstract class TestSupport
   @Before
   public void setUp(TestContext context) throws Exception {
     vertx = Vertx.vertx();
-    vertx.exceptionHandler(context.exceptionHandler());
+    //vertx.exceptionHandler(context.exceptionHandler());
   }
 
   @After

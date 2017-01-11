@@ -19,7 +19,7 @@ public class GraphDbTest
 {
   @Test
   public void graphCreation(final TestContext context) {
-    vertx.exceptionHandler(context.exceptionHandler());
+    //vertx.exceptionHandler(context.exceptionHandler());
     Manager manager = Manager.create(vertx, ManagerOptions.fromJsonObject(
         new JsonObject()
             .put("serverEnabled", false)

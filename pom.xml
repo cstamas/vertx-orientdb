@@ -31,8 +31,8 @@
   </issueManagement>
 
   <properties>
-    <vertx.version>3.3.2</vertx.version>
-    <orientdb.version>2.2.11</orientdb.version>
+    <vertx.version>3.3.3</vertx.version>
+    <orientdb.version>2.2.14</orientdb.version>
     <tinkerpop.version>2.6.0</tinkerpop.version> <!-- Keep in sync with OrientDB graph! -->
     <slf4j.version>1.7.21</slf4j.version>
     <logback.version>1.1.7</logback.version>
@@ -112,6 +112,12 @@
         <groupId>com.tinkerpop.gremlin</groupId>
         <artifactId>gremlin-groovy</artifactId>
         <version>${tinkerpop.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.tinkerpop.blueprints</groupId>
+        <artifactId>blueprints-core</artifactId>
+        <version>2.6.0</version>
       </dependency>
 
       <!-- Utilities and libs -->

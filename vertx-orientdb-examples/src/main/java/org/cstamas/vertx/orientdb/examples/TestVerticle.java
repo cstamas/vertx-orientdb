@@ -89,9 +89,11 @@ public class TestVerticle
 
   @Override
   public void stop(final Future<Void> stopFuture) throws Exception {
-    ProxyHelper.unregisterService(proxy);
     vertx.cancelTimer(writePeriodic);
     vertx.cancelTimer(readPeriodic);
+    writerVerticle.stop(Future.future());
+    readerVerticle.stop(Future.future());
+    ProxyHelper.unregisterService(proxy);
     manager.close(v -> stopFuture.complete());
   }
 

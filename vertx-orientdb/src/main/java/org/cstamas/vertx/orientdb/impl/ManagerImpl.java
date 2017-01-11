@@ -178,18 +178,16 @@ public class ManagerImpl
                                @Nullable final Handler<OrientGraphNoTx> openHandler,
                                @Nullable final Handler<AsyncResult<GraphDatabase>> instanceHandler)
   {
+    Handler<ODatabaseDocumentTx> openHandlerWrapper = null;
+    if (openHandler != null) {
+      openHandlerWrapper = db -> {
+        OrientGraphNoTx notx = new OrientGraphNoTx(db);
+        openHandler.handle(notx);
+      };
+    }
     instance(
         connectionOptions,
-        db -> {
-          OrientGraphNoTx notx = new OrientGraphNoTx(db);
-          try {
-            openHandler.handle(notx);
-            notx.commit();
-          }
-          finally {
-            notx.shutdown();
-          }
-        },
+        openHandlerWrapper,
         instance -> {
           Future<GraphDatabase> future;
           if (instance.succeeded()) {
@@ -217,9 +215,6 @@ public class ManagerImpl
           try {
             DatabaseInfo databaseInfo;
             synchronized (databaseInfos) {
-              if (databaseInfos.containsKey(connectionOptions.name())) {
-                throw new IllegalArgumentException("Database already exists:" + connectionOptions.name());
-              }
               if (databaseInfos.containsKey(connectionOptions.name())) {
                 databaseInfo = databaseInfos.get(connectionOptions.name());
               }
@@ -280,7 +275,8 @@ public class ManagerImpl
       Files.createDirectories(orientServerConfig.getParent());
       copy("defaults/orientdb-server-config.xml", orientServerConfig);
       copy("defaults/automatic-backup.json", orientServerConfig.getParent().resolve("automatic-backup.json"));
-      copy("defaults/default-distributed-db-config.json", orientServerConfig.getParent().resolve("default-distributed-db-config.json"));
+      copy("defaults/default-distributed-db-config.json",
+          orientServerConfig.getParent().resolve("default-distributed-db-config.json"));
       copy("defaults/security.json", orientServerConfig.getParent().resolve("security.json"));
       log.info("OrientDB managerOptions defaulted");
     }

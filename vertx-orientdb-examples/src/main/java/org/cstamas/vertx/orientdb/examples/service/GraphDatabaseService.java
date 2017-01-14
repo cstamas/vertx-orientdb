@@ -15,7 +15,7 @@ import org.cstamas.vertx.orientdb.Manager;
 
 /**
  * OrientDB service, registered whenever a {@link GraphDatabase} documentInstance is created using {@link
- * Manager#graphInstance(ConnectionOptions, Handler, Handler)} method, unregistered when documentInstance closed.
+ * Manager#createGraphInstance(ConnectionOptions, Handler)} method, unregistered when documentInstance closed.
  */
 @ProxyGen
 public interface GraphDatabaseService

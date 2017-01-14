@@ -52,10 +52,4 @@ public class WriterVerticle
     );
     super.start(startFuture);
   }
-
-  @Override
-  public void stop(final Future<Void> stopFuture) throws Exception {
-    consumer.unregister();
-    super.stop(stopFuture);
-  }
 }

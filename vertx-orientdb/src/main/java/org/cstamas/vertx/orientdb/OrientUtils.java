@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import com.orientechnologies.common.concur.ONeedRetryException;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
+import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -15,6 +16,22 @@ public final class OrientUtils
 {
   private OrientUtils() {
     // nop
+  }
+
+  /**
+   * Wraps passed in Orient document database into Orient graph database.
+   */
+  public static Handler<AsyncResult<ODatabaseDocumentTx>> graph(final Handler<AsyncResult<OrientGraph>> handler) {
+    Objects.requireNonNull(handler);
+    return adb -> {
+      if (adb.succeeded()) {
+        OrientGraph graphDatabase = new OrientGraph(adb.result());
+        handler.handle(Future.succeededFuture(graphDatabase));
+      }
+      else {
+        handler.handle(Future.failedFuture(adb.cause()));
+      }
+    };
   }
 
   /**

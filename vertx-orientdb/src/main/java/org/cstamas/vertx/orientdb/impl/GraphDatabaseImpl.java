@@ -20,7 +20,7 @@ public class GraphDatabaseImpl
 
   @Override
   public GraphDatabase exec(final Handler<AsyncResult<OrientGraph>> handler) {
-    manager.exec(vertx.getOrCreateContext(), getName(), adb -> {
+    manager.exec(getName(), adb -> {
       if (adb.succeeded()) {
         OrientGraph graph = new OrientGraph(adb.result());
         try {

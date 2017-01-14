@@ -5,11 +5,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-
-import javax.annotation.Nullable;
 
 import com.orientechnologies.orient.core.OConstants;
 import com.orientechnologies.orient.core.Orient;
@@ -19,7 +15,6 @@ import com.orientechnologies.orient.server.OServer;
 import com.orientechnologies.orient.server.config.OServerConfiguration;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -43,16 +38,12 @@ public class ManagerImpl
   {
     private final OPartitionedDatabasePool databasePool;
 
-    private final List<Handler<Void>> closeHandlers;
-
     DatabaseInfo(final OPartitionedDatabasePool databasePool)
     {
       this.databasePool = databasePool;
-      this.closeHandlers = new ArrayList<>();
     }
 
     void close() {
-      closeHandlers.forEach(h -> h.handle(null));
       databasePool.close();
     }
   }
@@ -85,29 +76,27 @@ public class ManagerImpl
     this.managerOptions = requireNonNull(managerOptions);
     this.databaseInfos = new HashMap<>();
     log.info("OrientDB version " + OConstants.getVersion());
-    open();
-  }
-
-  private void open() {
-    try {
-      if (managerOptions.isServerEnabled()) {
-        openServer();
-        log.info("OrientDB Server started");
-      }
-      else {
-        log.info("OrientDB Server disabled.");
-      }
-      openManager();
-      log.info("OrientDB Manager started");
-    }
-    catch (Exception e) {
-      log.error("Could not open database", e);
-      throw new RuntimeException(e);
-    }
   }
 
   @Override
-  public void close(Handler<AsyncResult<Void>> handler) {
+  public Manager open(final Handler<AsyncResult<Void>> handler) {
+    vertx.executeBlocking(
+        v -> {
+          try {
+            open();
+            handler.handle(Future.succeededFuture());
+          }
+          catch (Exception e) {
+            handler.handle(Future.failedFuture(e));
+          }
+        },
+        handler
+    );
+    return null;
+  }
+
+  @Override
+  public void close(final Handler<AsyncResult<Void>> handler) {
     vertx.executeBlocking(
         f -> {
           try {
@@ -149,89 +138,92 @@ public class ManagerImpl
   }
 
   @Override
-  public Manager documentInstance(ConnectionOptions connectionOptions,
-                                  @Nullable Handler<ODatabaseDocumentTx> openHandler,
-                                  @Nullable Handler<AsyncResult<DocumentDatabase>> instanceHandler)
+  public Manager createDocumentInstance(final ConnectionOptions connectionOptions,
+                                        final Handler<AsyncResult<ODatabaseDocumentTx>> handler)
   {
-    instance(
-        connectionOptions,
-        openHandler,
-        instance -> {
-          Future<DocumentDatabase> future;
-          if (instance.succeeded()) {
-            DocumentDatabase documentDatabase = new DocumentDatabaseImpl(vertx, connectionOptions.name(), this);
-            future = Future.succeededFuture(documentDatabase);
-          }
-          else {
-            future = Future.failedFuture(instance.cause());
-          }
-          if (instanceHandler != null) {
-            instanceHandler.handle(future);
-          }
-        }
-    );
+    create(connectionOptions, handler);
     return this;
   }
 
   @Override
-  public Manager graphInstance(final ConnectionOptions connectionOptions,
-                               @Nullable final Handler<OrientGraphNoTx> openHandler,
-                               @Nullable final Handler<AsyncResult<GraphDatabase>> instanceHandler)
+  public Manager documentInstance(final String name, final Handler<AsyncResult<DocumentDatabase>> handler)
   {
-    Handler<ODatabaseDocumentTx> openHandlerWrapper = null;
-    if (openHandler != null) {
-      openHandlerWrapper = db -> {
-        OrientGraphNoTx notx = new OrientGraphNoTx(db);
-        openHandler.handle(notx);
-      };
-    }
-    instance(
-        connectionOptions,
-        openHandlerWrapper,
-        instance -> {
-          Future<GraphDatabase> future;
-          if (instance.succeeded()) {
-            GraphDatabase graphDatabase = new GraphDatabaseImpl(vertx, connectionOptions.name(), this);
-            future = Future.succeededFuture(graphDatabase);
-          }
-          else {
-            future = Future.failedFuture(instance.cause());
-          }
-          if (instanceHandler != null) {
-            instanceHandler.handle(future);
-          }
-        }
-    );
-    return this;
-  }
-
-  private void instance(ConnectionOptions connectionOptions,
-                        @Nullable Handler<ODatabaseDocumentTx> openHandler,
-                        @Nullable Handler<AsyncResult<DatabaseInfo>> instanceHandler)
-  {
-    requireNonNull(connectionOptions);
     vertx.executeBlocking(
         f -> {
           try {
-            DatabaseInfo databaseInfo;
-            synchronized (databaseInfos) {
-              if (databaseInfos.containsKey(connectionOptions.name())) {
-                databaseInfo = databaseInfos.get(connectionOptions.name());
-              }
-              else {
-                OPartitionedDatabasePool databasePool = createDocumentDbPool(connectionOptions, openHandler);
-                databaseInfo = new DatabaseInfo(databasePool);
-                databaseInfos.put(connectionOptions.name(), databaseInfo);
-              }
+            DatabaseInfo databaseInfo = databaseInfos.get(name);
+            if (databaseInfo == null) {
+              f.fail(new IllegalArgumentException("Non existent database:" + name));
             }
-            f.complete(databaseInfo);
+            else {
+              f.complete(new DocumentDatabaseImpl(vertx, name, this));
+            }
           }
           catch (Exception e) {
             f.fail(e);
           }
         },
-        instanceHandler
+        handler
     );
+    return this;
+  }
+
+  @Override
+  public Manager createGraphInstance(final ConnectionOptions connectionOptions,
+                                     final Handler<AsyncResult<OrientGraphNoTx>> handler)
+  {
+    Handler<AsyncResult<ODatabaseDocumentTx>> handlerWrapper = adb -> {
+      if (adb.failed()) {
+        handler.handle(Future.failedFuture(adb.cause()));
+      }
+      else {
+        handler.handle(Future.succeededFuture(new OrientGraphNoTx(adb.result())));
+      }
+    };
+    create(connectionOptions, handlerWrapper);
+    return this;
+  }
+
+  @Override
+  public Manager graphInstance(final String name,
+                               final Handler<AsyncResult<GraphDatabase>> handler)
+  {
+    vertx.executeBlocking(
+        f -> {
+          try {
+            DatabaseInfo databaseInfo = databaseInfos.get(name);
+            if (databaseInfo == null) {
+              f.fail(new IllegalArgumentException("Non existent database:" + name));
+            }
+            else {
+              f.complete(new GraphDatabaseImpl(vertx, name, this));
+            }
+          }
+          catch (Exception e) {
+            f.fail(e);
+          }
+        },
+        handler
+    );
+    return this;
+  }
+
+  private void open() throws Exception {
+    try {
+      if (managerOptions.isServerEnabled()) {
+        openServer();
+        log.info("OrientDB Server started");
+      }
+      else {
+        log.info("OrientDB Server disabled.");
+      }
+      openManager();
+      log.info("OrientDB Manager started");
+    }
+    catch (Exception e) {
+      log.error("Could not open database", e);
+      throw e;
+    }
   }
 
   private void openServer() throws Exception {
@@ -289,15 +281,6 @@ public class ManagerImpl
     }
   }
 
-  private void closeServer() {
-    // documentInstance shutdown
-    orientServer.shutdown();
-    orientServer = null;
-
-    // global shutdown
-    Orient.instance().shutdown();
-  }
-
   private void openManager() throws IOException {
     if (orientServer != null) {
       // server is running, obey server managerOptions
@@ -310,50 +293,81 @@ public class ManagerImpl
     }
   }
 
+  private void closeServer() {
+    // documentInstance shutdown
+    orientServer.shutdown();
+    orientServer = null;
+
+    // global shutdown
+    Orient.instance().shutdown();
+  }
+
   private void closeManager() {
     databaseInfos.values().forEach(DatabaseInfo::close);
     databaseInfos.clear();
   }
 
-  private OPartitionedDatabasePool createDocumentDbPool(final ConnectionOptions connectionOptions,
-                                                        final @Nullable Handler<ODatabaseDocumentTx> openHandler)
+  private OPartitionedDatabasePool create(final ConnectionOptions connectionOptions,
+                                          final Handler<AsyncResult<ODatabaseDocumentTx>> handler)
   {
-    final String uri = connectionOptions.uri();
-    if (!uri.startsWith(REMOTE_PREFIX)) {
-      try (ODatabaseDocumentTx db = new ODatabaseDocumentTx(uri)) {
-        if (db.exists()) {
-          db.open(connectionOptions.username(), connectionOptions.password());
-          log.debug("Opened existing " + connectionOptions.name() + " -> " + uri);
-        }
-        else {
-          db.create();
-          log.debug("Created new " + connectionOptions.name() + " -> " + uri);
-        }
-        if (openHandler != null) {
-          openHandler.handle(db);
-        }
-      }
-    }
-    return new OPartitionedDatabasePool(
-        uri,
-        connectionOptions.username(),
-        connectionOptions.password(),
-        connectionOptions.maxPartitionSize(),
-        connectionOptions.maxPoolSize()
+    vertx.executeBlocking(
+        f -> {
+          try {
+            synchronized (databaseInfos) {
+              final String uri = connectionOptions.uri();
+              if (!uri.startsWith(REMOTE_PREFIX)) {
+                try (ODatabaseDocumentTx db = new ODatabaseDocumentTx(uri)) {
+                  if (db.exists()) {
+                    db.open(connectionOptions.username(), connectionOptions.password());
+                    log.debug("Opened existing " + connectionOptions.name() + " -> " + uri);
+                  }
+                  else {
+                    db.create();
+                    log.debug("Created new " + connectionOptions.name() + " -> " + uri);
+                  }
+                  try {
+                    handler.handle(Future.succeededFuture(db));
+                  }
+                  catch (Exception e) {
+                    log.warn("Creation/Open handler failure", e);
+                  }
+                }
+              }
+              OPartitionedDatabasePool pool = new OPartitionedDatabasePool(
+                  uri,
+                  connectionOptions.username(),
+                  connectionOptions.password(),
+                  connectionOptions.maxPartitionSize(),
+                  connectionOptions.maxPoolSize()
+              );
+              DatabaseInfo info = new DatabaseInfo(pool);
+              databaseInfos.put(connectionOptions.name(), info);
+              f.complete();
+            }
+          }
+          catch (Exception e) {
+            handler.handle(Future.failedFuture(e));
+            f.fail(e);
+          }
+        },
+        null
     );
+    return null;
   }
 
-  void exec(final Context context, final String name, final Handler<AsyncResult<ODatabaseDocumentTx>> handler) {
-    context.executeBlocking(
+  void exec(final String name, final Handler<AsyncResult<ODatabaseDocumentTx>> handler) {
+    vertx.executeBlocking(
         f -> {
           try {
             DatabaseInfo databaseInfo = databaseInfos.get(name);
             if (databaseInfo == null) {
-              throw new IllegalArgumentException("Non existent database:" + name);
+              handler.handle(Future.failedFuture(new IllegalArgumentException("Non existent database:" + name)));
             }
-            OPartitionedDatabasePool pool = databaseInfo.databasePool;
-            try (ODatabaseDocumentTx db = pool.acquire()) {
-              handler.handle(Future.succeededFuture(db));
+            else {
+              OPartitionedDatabasePool pool = databaseInfo.databasePool;
+              try (ODatabaseDocumentTx db = pool.acquire()) {
+                handler.handle(Future.succeededFuture(db));
+              }
             }
           }
           catch (Exception e) {
@@ -364,19 +378,21 @@ public class ManagerImpl
     );
   }
 
-  synchronized void close(final Context context, final String name, final Handler<AsyncResult<Void>> handler) {
-    context.executeBlocking(
+  void close(final String name, final Handler<AsyncResult<Void>> handler) {
+    vertx.executeBlocking(
         f -> {
           try {
             synchronized (databaseInfos) {
               DatabaseInfo databaseInfo = databaseInfos.get(name);
               if (databaseInfo == null) {
-                throw new IllegalArgumentException("Non existent database:" + name);
+                f.fail(new IllegalArgumentException("Non existent database:" + name));
               }
-              databaseInfo.close();
-              databaseInfos.remove(name);
+              else {
+                databaseInfo.close();
+                databaseInfos.remove(name);
+                f.complete();
+              }
             }
-            f.complete();
           }
           catch (Exception e) {
             f.fail(e);

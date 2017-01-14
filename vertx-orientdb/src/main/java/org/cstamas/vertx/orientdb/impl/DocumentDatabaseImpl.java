@@ -31,7 +31,7 @@ public class DocumentDatabaseImpl
 
   @Override
   public DocumentDatabase exec(final Handler<AsyncResult<ODatabaseDocumentTx>> handler) {
-    manager.exec(vertx.getOrCreateContext(), getName(), handler);
+    manager.exec(getName(), handler);
     return this;
   }
 
@@ -43,7 +43,7 @@ public class DocumentDatabaseImpl
     requireNonNull(selectSql);
     requireNonNull(handler);
     Context context = vertx.getOrCreateContext();
-    manager.exec(vertx.getOrCreateContext(), getName(), adb -> {
+    manager.exec(getName(), adb -> {
       if (adb.succeeded()) {
         OrientReadStream<T> stream = new OrientReadStream<>(context);
         OSQLNonBlockingQuery<ODocument> query = new OSQLNonBlockingQuery<>(selectSql, stream);

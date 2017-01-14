@@ -15,7 +15,7 @@ import org.cstamas.vertx.orientdb.Manager;
 
 /**
  * OrientDB service, registered whenever a {@link DocumentDatabase} instance is created using {@link
- * Manager#documentInstance(ConnectionOptions, Handler, Handler)} method, unregistered when documentInstance closed.
+ * Manager#createDocumentInstance(ConnectionOptions, Handler)} method, unregistered when documentInstance closed.
  */
 @ProxyGen
 public interface DocumentDatabaseService

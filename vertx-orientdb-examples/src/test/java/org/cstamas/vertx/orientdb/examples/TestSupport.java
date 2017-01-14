@@ -31,7 +31,8 @@ public abstract class TestSupport
   @Before
   public void setUp(TestContext context) throws Exception {
     vertx = Vertx.vertx();
-    //vertx.exceptionHandler(context.exceptionHandler());
+    // https://github.com/eclipse/vert.x/issues/1625
+    vertx.exceptionHandler(context.exceptionHandler());
   }
 
   @After

@@ -32,7 +32,7 @@ public final class OrientUtils
         }
         catch (Exception e) {
           db.rollback();
-          throw e;
+          handler.handle(Future.failedFuture(e));
         }
       }
       else {

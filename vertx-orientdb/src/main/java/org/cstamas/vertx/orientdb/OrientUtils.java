@@ -2,6 +2,8 @@ package org.cstamas.vertx.orientdb;
 
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
 import com.orientechnologies.common.concur.ONeedRetryException;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.tinkerpop.blueprints.TransactionalGraph;
@@ -82,6 +84,13 @@ public final class OrientUtils
     };
   }
 
+  // OrientDB concurrency helpers
+
+  public interface Variance
+  {
+    void vary(int retry);
+  }
+
   /**
    * Retries {@link Handler} multiple times, usable with OrientDB MVCC and {@link ONeedRetryException}. This method
    * can be used with {@link ODatabaseDocumentTx} and also with {@link TransactionalGraph}. In case of any exception
@@ -91,6 +100,7 @@ public final class OrientUtils
    * @see <a href="http://orientdb.com/docs/2.2/Java-Multi-Threading.html#multi-version-concurrency-control">MVCC</a>
    */
   public static <DB> Handler<DB> retry(final int retries,
+                                       @Nullable final Variance variance,
                                        final Handler<DB> handler)
   {
     if (retries < 1) {
@@ -111,6 +121,9 @@ public final class OrientUtils
           catch (ONeedRetryException e) {
             // try again
             throwable = e;
+            if (variance != null) {
+              variance.vary(retry);
+            }
           }
         }
       }

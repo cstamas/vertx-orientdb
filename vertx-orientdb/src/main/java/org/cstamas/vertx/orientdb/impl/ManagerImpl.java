@@ -340,6 +340,11 @@ public class ManagerImpl
                   connectionOptions.maxPartitionSize(),
                   connectionOptions.maxPoolSize()
               );
+              if (uri.startsWith(REMOTE_PREFIX)) {
+                try (ODatabaseDocumentTx db = pool.acquire()) {
+                  handler.handle(Future.succeededFuture(db));
+                }
+              }
               DatabaseInfo info = new DatabaseInfo(pool);
               databaseInfos.put(connectionOptions.name(), info);
               f.complete();

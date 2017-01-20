@@ -75,7 +75,6 @@ public class ManagerImpl
     this.vertx = requireNonNull(vertx);
     this.managerOptions = requireNonNull(managerOptions);
     this.databaseInfos = new HashMap<>();
-    log.info("OrientDB version " + OConstants.getVersion());
   }
 
   @Override
@@ -212,13 +211,9 @@ public class ManagerImpl
     try {
       if (managerOptions.isServerEnabled()) {
         openServer();
-        log.info("OrientDB Server started");
-      }
-      else {
-        log.info("OrientDB Server disabled.");
       }
       openManager();
-      log.info("OrientDB Manager started");
+      log.info("OrientDB " + OConstants.getVersion() + " manager started");
     }
     catch (Exception e) {
       log.error("Could not open database", e);
@@ -250,9 +245,9 @@ public class ManagerImpl
 
   private void configureServer() throws IOException {
     this.orientHome = Paths.get(managerOptions.getOrientHome()).toAbsolutePath();
-    log.info("OrientDB home " + orientHome);
+    log.info(Orient.ORIENTDB_HOME + "=" + orientHome);
     this.orientServerConfig = orientHome.resolve(OServerConfiguration.DEFAULT_CONFIG_FILE);
-    log.info("OrientDB config " + orientServerConfig);
+    log.info("OrientDB server configuration: " + orientServerConfig);
     mayDefaultServer();
 
     System.setProperty("orient.home", orientHome.toString());
@@ -270,7 +265,7 @@ public class ManagerImpl
       copy("defaults/default-distributed-db-config.json",
           orientServerConfig.getParent().resolve("default-distributed-db-config.json"));
       copy("defaults/security.json", orientServerConfig.getParent().resolve("security.json"));
-      log.info("OrientDB managerOptions defaulted");
+      log.info("OrientDB Server defaulted!");
     }
   }
 
@@ -355,7 +350,8 @@ public class ManagerImpl
             f.fail(e);
           }
         },
-        v -> {}
+        v -> {
+        }
     );
     return null;
   }
@@ -383,7 +379,8 @@ public class ManagerImpl
             f.fail(e);
           }
         },
-        v -> {}
+        v -> {
+        }
     );
   }
 

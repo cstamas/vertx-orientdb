@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import com.orientechnologies.common.concur.ONeedRetryException;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
+import com.tinkerpop.blueprints.TransactionalGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -59,44 +60,65 @@ public final class OrientUtils
   }
 
   /**
-   * Retries {@link Handler} multiple times, usable with OrientDB MVCC and {@link ONeedRetryException}.
+   * Wraps passed in handler into a transaction.
+   */
+  public static Handler<AsyncResult<TransactionalGraph>> graphTx(final Handler<AsyncResult<TransactionalGraph>> handler) {
+    Objects.requireNonNull(handler);
+    return adb -> {
+      if (adb.succeeded()) {
+        TransactionalGraph db = adb.result();
+        try {
+          handler.handle(adb);
+          db.commit();
+        }
+        catch (Exception e) {
+          db.rollback();
+          handler.handle(Future.failedFuture(e));
+        }
+      }
+      else {
+        handler.handle(adb);
+      }
+    };
+  }
+
+  /**
+   * Retries {@link Handler} multiple times, usable with OrientDB MVCC and {@link ONeedRetryException}. This method
+   * can be used with {@link ODatabaseDocumentTx} and also with {@link TransactionalGraph}. In case of any exception
+   * (and if retries were exceeded), this handler will throw the original exception wrapped into {@link
+   * RuntimeException}.
    *
    * @see <a href="http://orientdb.com/docs/2.2/Java-Multi-Threading.html#multi-version-concurrency-control">MVCC</a>
    */
-  public static Handler<AsyncResult<ODatabaseDocumentTx>> retry(final int retries,
-                                                                final Handler<AsyncResult<ODatabaseDocumentTx>> handler)
+  public static <DB> Handler<DB> retry(final int retries,
+                                       final Handler<DB> handler)
   {
     if (retries < 1) {
       throw new IllegalArgumentException("Retries must be greater than zero: " + retries);
     }
     Objects.requireNonNull(handler);
     return adb -> {
-      if (adb.succeeded()) {
-        int retry = 0;
-        Throwable throwable = null;
-        try {
-          while (retry < retries) {
-            try {
-              retry++;
-              handler.handle(adb);
-              throwable = null;
-              break;
-            }
-            catch (ONeedRetryException e) {
-              // try again
-              throwable = e;
-            }
+      int retry = 0;
+      Throwable throwable = null;
+      try {
+        while (retry < retries) {
+          try {
+            retry++;
+            handler.handle(adb);
+            throwable = null;
+            break;
+          }
+          catch (ONeedRetryException e) {
+            // try again
+            throwable = e;
           }
         }
-        catch (Exception e) {
-          throwable = e;
-        }
-        if (throwable != null) {
-          handler.handle(Future.failedFuture(throwable));
-        }
       }
-      else {
-        handler.handle(adb);
+      catch (Exception e) {
+        throwable = e;
+      }
+      if (throwable != null) {
+        throw new RuntimeException("Failed after " + retries + " retries", throwable);
       }
     };
   }

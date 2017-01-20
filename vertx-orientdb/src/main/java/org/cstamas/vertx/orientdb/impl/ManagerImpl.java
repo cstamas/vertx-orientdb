@@ -366,20 +366,24 @@ public class ManagerImpl
           try {
             DatabaseInfo databaseInfo = databaseInfos.get(name);
             if (databaseInfo == null) {
-              handler.handle(Future.failedFuture(new IllegalArgumentException("Non existent database:" + name)));
+              IllegalArgumentException iaex = new IllegalArgumentException("Non existent database:" + name);
+              handler.handle(Future.failedFuture(iaex));
+              f.fail(iaex);
             }
             else {
               OPartitionedDatabasePool pool = databaseInfo.databasePool;
               try (ODatabaseDocumentTx db = pool.acquire()) {
                 handler.handle(Future.succeededFuture(db));
               }
+              f.complete();
             }
           }
           catch (Exception e) {
             handler.handle(Future.failedFuture(e));
+            f.fail(e);
           }
         },
-        db -> {}
+        v -> {}
     );
   }
 

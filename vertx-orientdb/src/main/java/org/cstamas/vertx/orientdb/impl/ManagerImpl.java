@@ -355,7 +355,7 @@ public class ManagerImpl
             f.fail(e);
           }
         },
-        null
+        v -> {}
     );
     return null;
   }
@@ -379,7 +379,7 @@ public class ManagerImpl
             handler.handle(Future.failedFuture(e));
           }
         },
-        null
+        db -> {}
     );
   }
 

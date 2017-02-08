@@ -12,7 +12,6 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
 import io.vertx.core.streams.ReadStream;
 import org.cstamas.vertx.orientdb.DocumentDatabase;
 
@@ -25,8 +24,8 @@ public class DocumentDatabaseImpl
     extends DatabaseSupport<DocumentDatabase, ODatabaseDocumentTx>
     implements DocumentDatabase
 {
-  public DocumentDatabaseImpl(final Vertx vertx, final String name, final ManagerImpl manager) {
-    super(vertx, name, manager);
+  public DocumentDatabaseImpl(final Context context, final String name, final ManagerImpl manager) {
+    super(context, name, manager);
   }
 
   @Override
@@ -42,7 +41,6 @@ public class DocumentDatabaseImpl
   {
     requireNonNull(selectSql);
     requireNonNull(handler);
-    Context context = vertx.getOrCreateContext();
     manager.exec(getName(), adb -> {
       if (adb.succeeded()) {
         OrientReadStream<T> stream = new OrientReadStream<>(context);

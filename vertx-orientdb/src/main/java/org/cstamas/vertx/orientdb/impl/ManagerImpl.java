@@ -15,9 +15,9 @@ import com.orientechnologies.orient.server.OServer;
 import com.orientechnologies.orient.server.config.OServerConfiguration;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.cstamas.vertx.orientdb.ConnectionOptions;
@@ -56,7 +56,7 @@ public class ManagerImpl
 
   private static final Logger log = LoggerFactory.getLogger(ManagerImpl.class);
 
-  private final Vertx vertx;
+  private final Context context;
 
   private final ManagerOptions managerOptions;
 
@@ -70,16 +70,20 @@ public class ManagerImpl
 
   private OServer orientServer;
 
-  public ManagerImpl(final Vertx vertx, final ManagerOptions managerOptions)
+  public ManagerImpl(final Context context, final ManagerOptions managerOptions)
   {
-    this.vertx = requireNonNull(vertx);
+    this.context = requireNonNull(context);
     this.managerOptions = requireNonNull(managerOptions);
     this.databaseInfos = new HashMap<>();
   }
 
+  private <T> void executeBlocking(Handler<Future<T>> blockingCodeHandler, Handler<AsyncResult<T>> resultHandler) {
+    context.executeBlocking(blockingCodeHandler, false, resultHandler);
+  }
+
   @Override
   public Manager open(final Handler<AsyncResult<Void>> handler) {
-    vertx.executeBlocking(
+    executeBlocking(
         v -> {
           try {
             open();
@@ -96,7 +100,7 @@ public class ManagerImpl
 
   @Override
   public void close(final Handler<AsyncResult<Void>> handler) {
-    vertx.executeBlocking(
+    executeBlocking(
         f -> {
           try {
             if (managerOptions.isServerEnabled()) {
@@ -138,16 +142,17 @@ public class ManagerImpl
 
   @Override
   public Manager createDocumentInstance(final ConnectionOptions connectionOptions,
-                                        final Handler<AsyncResult<ODatabaseDocumentTx>> handler)
+                                        final Handler<ODatabaseDocumentTx> handler,
+                                        final Handler<AsyncResult<Void>> resultHandler)
   {
-    create(connectionOptions, handler);
+    create(connectionOptions, handler, resultHandler);
     return this;
   }
 
   @Override
   public Manager documentInstance(final String name, final Handler<AsyncResult<DocumentDatabase>> handler)
   {
-    vertx.executeBlocking(
+    executeBlocking(
         f -> {
           try {
             DatabaseInfo databaseInfo = databaseInfos.get(name);
@@ -155,7 +160,7 @@ public class ManagerImpl
               f.fail(new IllegalArgumentException("Non existent database:" + name));
             }
             else {
-              f.complete(new DocumentDatabaseImpl(vertx, name, this));
+              f.complete(new DocumentDatabaseImpl(context, name, this));
             }
           }
           catch (Exception e) {
@@ -169,17 +174,13 @@ public class ManagerImpl
 
   @Override
   public Manager createGraphInstance(final ConnectionOptions connectionOptions,
-                                     final Handler<AsyncResult<OrientGraphNoTx>> handler)
+                                     final Handler<OrientGraphNoTx> handler,
+                                     final Handler<AsyncResult<Void>> resultHandler)
   {
-    Handler<AsyncResult<ODatabaseDocumentTx>> handlerWrapper = adb -> {
-      if (adb.failed()) {
-        handler.handle(Future.failedFuture(adb.cause()));
-      }
-      else {
-        handler.handle(Future.succeededFuture(new OrientGraphNoTx(adb.result())));
-      }
+    Handler<ODatabaseDocumentTx> handlerWrapper = adb -> {
+      handler.handle(new OrientGraphNoTx(adb));
     };
-    create(connectionOptions, handlerWrapper);
+    create(connectionOptions, handlerWrapper, resultHandler);
     return this;
   }
 
@@ -187,7 +188,7 @@ public class ManagerImpl
   public Manager graphInstance(final String name,
                                final Handler<AsyncResult<GraphDatabase>> handler)
   {
-    vertx.executeBlocking(
+    executeBlocking(
         f -> {
           try {
             DatabaseInfo databaseInfo = databaseInfos.get(name);
@@ -195,7 +196,7 @@ public class ManagerImpl
               f.fail(new IllegalArgumentException("Non existent database:" + name));
             }
             else {
-              f.complete(new GraphDatabaseImpl(vertx, name, this));
+              f.complete(new GraphDatabaseImpl(context, name, this));
             }
           }
           catch (Exception e) {
@@ -302,10 +303,11 @@ public class ManagerImpl
     databaseInfos.clear();
   }
 
-  private OPartitionedDatabasePool create(final ConnectionOptions connectionOptions,
-                                          final Handler<AsyncResult<ODatabaseDocumentTx>> handler)
+  private void create(final ConnectionOptions connectionOptions,
+                      final Handler<ODatabaseDocumentTx> handler,
+                      final Handler<AsyncResult<Void>> resultHandler)
   {
-    vertx.executeBlocking(
+    executeBlocking(
         f -> {
           try {
             synchronized (databaseInfos) {
@@ -321,7 +323,7 @@ public class ManagerImpl
                     log.debug("Created new " + connectionOptions.name() + " -> " + uri);
                   }
                   try {
-                    handler.handle(Future.succeededFuture(db));
+                    handler.handle(db);
                   }
                   catch (Exception e) {
                     log.warn("Creation/Open handler failure", e);
@@ -337,7 +339,7 @@ public class ManagerImpl
               );
               if (uri.startsWith(REMOTE_PREFIX)) {
                 try (ODatabaseDocumentTx db = pool.acquire()) {
-                  handler.handle(Future.succeededFuture(db));
+                  handler.handle(db);
                 }
               }
               DatabaseInfo info = new DatabaseInfo(pool);
@@ -346,18 +348,15 @@ public class ManagerImpl
             }
           }
           catch (Exception e) {
-            handler.handle(Future.failedFuture(e));
             f.fail(e);
           }
         },
-        v -> {
-        }
+        resultHandler
     );
-    return null;
   }
 
   void exec(final String name, final Handler<AsyncResult<ODatabaseDocumentTx>> handler) {
-    vertx.executeBlocking(
+    executeBlocking(
         f -> {
           try {
             DatabaseInfo databaseInfo = databaseInfos.get(name);
@@ -385,7 +384,7 @@ public class ManagerImpl
   }
 
   void close(final String name, final Handler<AsyncResult<Void>> handler) {
-    vertx.executeBlocking(
+    executeBlocking(
         f -> {
           try {
             synchronized (databaseInfos) {

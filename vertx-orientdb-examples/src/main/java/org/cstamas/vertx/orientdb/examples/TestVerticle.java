@@ -1,6 +1,7 @@
 package org.cstamas.vertx.orientdb.examples;
 
 import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
@@ -68,17 +69,18 @@ public class TestVerticle
     manager.createDocumentInstance(
         connectionOptions,
         adb -> {
-          if (adb.failed()) {
-            log.warn("Failed to create DB", adb.cause());
-            handler.handle(Future.failedFuture(adb.cause()));
+          OSchema schema = adb.getMetadata().getSchema();
+          if (!schema.existsClass("test")) {
+            OClass oclass = schema.createClass("test");
+            oclass.createProperty("name", OType.STRING);
+            oclass.createProperty("value", OType.STRING);
+          }
+        },
+        v -> {
+          if (v.failed()) {
+            handler.handle(Future.failedFuture(v.cause()));
           }
           else {
-            OSchema schema = adb.result().getMetadata().getSchema();
-            if (!schema.existsClass("test")) {
-              OClass oclass = schema.createClass("test");
-              oclass.createProperty("name", OType.STRING);
-              oclass.createProperty("value", OType.STRING);
-            }
             deployVerticles(connectionOptions, handler);
           }
         }
@@ -121,11 +123,22 @@ public class TestVerticle
       return manager.memoryConnection(name).build();
     }
     else if (protocol.equals("remote")) {
+      CountDownLatch serverUp = new CountDownLatch(1);
       String servername = name + "_server";
       manager.createDocumentInstance(
           manager.plocalConnection(servername).build(),
-          db -> db.result().getMetadata().getSchema().createClass("test")
+          db -> db.getMetadata().getSchema().createClass("test"),
+          v -> {
+            serverUp.countDown();
+          }
       );
+      // this is hack, but ok for test
+      try {
+        serverUp.await();
+      }
+      catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
       return manager.remoteConnection(name, "localhost", servername).build();
     }
     else {

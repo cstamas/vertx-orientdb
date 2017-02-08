@@ -19,7 +19,7 @@ public interface Manager
    * use.
    */
   static Manager create(Vertx vertx, ManagerOptions managerOptions) {
-    return new ManagerImpl(vertx, managerOptions);
+    return new ManagerImpl(vertx.getOrCreateContext(), managerOptions);
   }
 
   /**
@@ -52,12 +52,14 @@ public interface Manager
    * @param connectionOptions the orientdb connection information.
    * @param handler           the handler to invoke in single-connection mode, useful to set up schema, upgrade schema
    *                          or so.
+   * @param resultHandler     Invoked when creation is done.
    */
   Manager createDocumentInstance(ConnectionOptions connectionOptions,
-                                 Handler<AsyncResult<ODatabaseDocumentTx>> handler);
+                                 Handler<ODatabaseDocumentTx> handler,
+                                 Handler<AsyncResult<Void>> resultHandler);
 
   /**
-   * Gets an instance created with {@link #createDocumentInstance(ConnectionOptions, Handler)}.
+   * Gets an instance created with {@link #createDocumentInstance(ConnectionOptions, Handler, Handler)}.
    *
    * @param name    the orientdb database name as defined in {@link ConnectionOptions} when created.
    * @param handler the handler invoked when documentInstance is constructed.
@@ -74,12 +76,14 @@ public interface Manager
    * @param connectionOptions the orientdb connection information.
    * @param handler           the handler to invoke in single-connection mode, useful to set up schema, upgrade schema
    *                          or so.
+   * @param resultHandler     Invoked when creation is done.
    */
   Manager createGraphInstance(ConnectionOptions connectionOptions,
-                              Handler<AsyncResult<OrientGraphNoTx>> handler);
+                              Handler<OrientGraphNoTx> handler,
+                              Handler<AsyncResult<Void>> resultHandler);
 
   /**
-   * Gets an instance created with {@link #createGraphInstance(ConnectionOptions, Handler)}.
+   * Gets an instance created with {@link #createGraphInstance(ConnectionOptions, Handler, Handler)}.
    *
    * @param name    the orientdb database name as defined in {@link ConnectionOptions} when created.
    * @param handler the handler invoked when documentInstance is constructed.

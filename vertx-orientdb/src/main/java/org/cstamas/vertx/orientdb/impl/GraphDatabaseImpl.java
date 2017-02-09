@@ -3,9 +3,10 @@ package org.cstamas.vertx.orientdb.impl;
 import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import org.cstamas.vertx.orientdb.GraphDatabase;
+
+import static org.cstamas.vertx.orientdb.OrientUtils.graph;
 
 /**
  * Default implementation.
@@ -20,20 +21,7 @@ public class GraphDatabaseImpl
 
   @Override
   public GraphDatabase exec(final Handler<AsyncResult<OrientGraph>> handler) {
-    manager.exec(getName(), adb -> {
-      if (adb.succeeded()) {
-        OrientGraph graph = new OrientGraph(adb.result());
-        try {
-          handler.handle(Future.succeededFuture(graph));
-        }
-        finally {
-          graph.shutdown();
-        }
-      }
-      else {
-        handler.handle(Future.failedFuture(adb.cause()));
-      }
-    });
+    manager.exec(getName(), adb -> graph(handler).handle(adb));
     return this;
   }
 }

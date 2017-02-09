@@ -103,6 +103,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <forkMode>always</forkMode>
+          <argLine>-XX:MaxDirectMemorySize=16384m</argLine>
         </configuration>
       </plugin>
     </plugins>

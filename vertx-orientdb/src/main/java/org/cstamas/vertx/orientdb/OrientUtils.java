@@ -45,7 +45,6 @@ public final class OrientUtils
    * Wraps passed in handler into a transaction.
    */
   public static Handler<ODatabaseDocumentTx> tx(final Handler<ODatabaseDocumentTx> handler)
-      throws Exception
   {
     Objects.requireNonNull(handler);
     return db -> {
@@ -65,7 +64,6 @@ public final class OrientUtils
    * Wraps passed in handler into a transaction.
    */
   public static Handler<OrientGraph> graphTx(final Handler<OrientGraph> handler)
-      throws Exception
   {
     Objects.requireNonNull(handler);
     return db -> {
@@ -102,7 +100,7 @@ public final class OrientUtils
    */
   public static Handler<ODatabaseDocumentTx> retry(final int retries,
                                                    @Nullable final Variance variance,
-                                                   final Handler<ODatabaseDocumentTx> handler) throws Exception
+                                                   final Handler<ODatabaseDocumentTx> handler)
   {
     if (retries < 1) {
       throw new IllegalArgumentException("Retries must be greater than zero: " + retries);
@@ -133,7 +131,7 @@ public final class OrientUtils
         throwable = e;
       }
       if (throwable != null) {
-        throw new RuntimeException("Failed after " + retries + " retries", throwable);
+        throw new RuntimeException("Failed after " + retry + " retries", throwable);
       }
     };
   }
@@ -149,7 +147,7 @@ public final class OrientUtils
    */
   public static Handler<OrientGraph> retryGraph(final int retries,
                                                 @Nullable final Variance variance,
-                                                final Handler<OrientGraph> handler) throws Exception
+                                                final Handler<OrientGraph> handler)
   {
     if (retries < 1) {
       throw new IllegalArgumentException("Retries must be greater than zero: " + retries);

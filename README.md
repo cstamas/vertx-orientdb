@@ -6,7 +6,7 @@ uses.
 
 [![wercker status](https://app.wercker.com/status/ba9343552def99973ea803d929ba7c51/m "wercker status")](https://app.wercker.com/project/bykey/ba9343552def99973ea803d929ba7c51)
 
-[![Maven Central](https://img.shields.io/maven-central/v/org.cstamas.vertx.orientdb/vertx-orientdb.svg)](https://img.shields.io/maven-central/v/org.cstamas.vertx.orientdb/vertx-orientdb.svg)
+[![Maven](https://img.shields.io/maven-central/v/org.cstamas.vertx.orientdb/vertx-orientdb.svg)](https://repo1.maven.org/maven2/org/cstamas/vertx/orientdb/)
 
 # Using it
 

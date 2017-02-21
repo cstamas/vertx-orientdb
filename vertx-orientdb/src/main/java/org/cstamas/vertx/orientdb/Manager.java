@@ -19,7 +19,7 @@ public interface Manager
    * use.
    */
   static Manager create(Vertx vertx, ManagerOptions managerOptions) {
-    return new ManagerImpl(vertx.getOrCreateContext(), managerOptions);
+    return new ManagerImpl(vertx, managerOptions);
   }
 
   /**

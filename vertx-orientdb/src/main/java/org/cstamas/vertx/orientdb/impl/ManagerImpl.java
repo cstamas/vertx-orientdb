@@ -15,9 +15,9 @@ import com.orientechnologies.orient.server.OServer;
 import com.orientechnologies.orient.server.config.OServerConfiguration;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.cstamas.vertx.orientdb.ConnectionOptions;
@@ -56,7 +56,7 @@ public class ManagerImpl
 
   private static final Logger log = LoggerFactory.getLogger(ManagerImpl.class);
 
-  private final Context context;
+  private final Vertx vertx;
 
   private final ManagerOptions managerOptions;
 
@@ -70,27 +70,27 @@ public class ManagerImpl
 
   private OServer orientServer;
 
-  public ManagerImpl(final Context context, final ManagerOptions managerOptions)
+  public ManagerImpl(final Vertx vertx, final ManagerOptions managerOptions)
   {
-    this.context = requireNonNull(context);
+    this.vertx = requireNonNull(vertx);
     this.managerOptions = requireNonNull(managerOptions);
     this.databaseInfos = new HashMap<>();
   }
 
   private <T> void executeBlocking(Handler<Future<T>> blockingCodeHandler, Handler<AsyncResult<T>> resultHandler) {
-    context.executeBlocking(blockingCodeHandler, false, resultHandler);
+    vertx.executeBlocking(blockingCodeHandler, false, resultHandler);
   }
 
   @Override
   public Manager open(final Handler<AsyncResult<Void>> handler) {
     executeBlocking(
-        v -> {
+        f -> {
           try {
             open();
-            handler.handle(Future.succeededFuture());
+            f.complete();
           }
           catch (Exception e) {
-            handler.handle(Future.failedFuture(e));
+            f.fail(e);
           }
         },
         handler
@@ -160,7 +160,7 @@ public class ManagerImpl
               f.fail(new IllegalArgumentException("Non existent database:" + name));
             }
             else {
-              f.complete(new DocumentDatabaseImpl(context, name, this));
+              f.complete(new DocumentDatabaseImpl(name, this));
             }
           }
           catch (Exception e) {
@@ -196,7 +196,7 @@ public class ManagerImpl
               f.fail(new IllegalArgumentException("Non existent database:" + name));
             }
             else {
-              f.complete(new GraphDatabaseImpl(context, name, this));
+              f.complete(new GraphDatabaseImpl(name, this));
             }
           }
           catch (Exception e) {
@@ -299,8 +299,10 @@ public class ManagerImpl
   }
 
   private void closeManager() {
-    databaseInfos.values().forEach(DatabaseInfo::close);
-    databaseInfos.clear();
+    synchronized (databaseInfos) {
+      databaseInfos.values().forEach(DatabaseInfo::close);
+      databaseInfos.clear();
+    }
   }
 
   private void create(final ConnectionOptions connectionOptions,

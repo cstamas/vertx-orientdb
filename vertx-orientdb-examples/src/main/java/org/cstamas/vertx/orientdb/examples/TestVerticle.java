@@ -1,7 +1,6 @@
 package org.cstamas.vertx.orientdb.examples;
 
 import java.util.Objects;
-import java.util.concurrent.CountDownLatch;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OSchema;
@@ -45,49 +44,84 @@ public class TestVerticle
   @Override
   public void start(final Future<Void> startFuture) throws Exception {
     this.manager = Manager.create(vertx, ManagerOptions.fromJsonObject(config()));
-    manager.open(v -> {
-      Future<Void> future = Future.future();
-      future.setHandler(vv -> {
-        // fire events that cause READ and WRITE operations
-        readPeriodic = vertx.setPeriodic(50,
-            t -> {
-              vertx.eventBus().publish("read", null);
-            });
-        writePeriodic = vertx.setPeriodic(50,
-            t -> {
-              long now = System.currentTimeMillis();
-              vertx.eventBus().publish("write", new JsonObject().put("name", String.valueOf(now)).put("value", now));
-            });
-        startFuture.complete(null);
-      });
-      createDocumentDatabase(future.completer());
+    manager.open(opened -> {
+      if (opened.failed()) {
+        startFuture.fail(opened.cause());
+      }
+      else {
+        Future<Void> future = Future.future();
+        future.setHandler(vv -> {
+          if (vv.failed()) {
+            log.info("Deploy failed", vv.cause());
+            startFuture.fail(vv.cause());
+          }
+          else {
+            log.info("Starting periodics");
+            // fire events that cause READ and WRITE operations
+            readPeriodic = vertx.setPeriodic(50,
+                t -> {
+                  vertx.eventBus().publish("read", null);
+                });
+            writePeriodic = vertx.setPeriodic(50,
+                t -> {
+                  long now = System.currentTimeMillis();
+                  vertx.eventBus().publish("write", new JsonObject().put("name", String.valueOf(now)).put("value", now));
+                });
+            startFuture.complete();
+          }
+        });
+        createDocumentDatabase(future.completer());
+      }
     });
   }
 
-  private void createDocumentDatabase(Handler<AsyncResult<Void>> handler) {
-    ConnectionOptions connectionOptions = selectConnectionInfo();
-    manager.createDocumentInstance(
-        connectionOptions,
-        adb -> {
-          OSchema schema = adb.getMetadata().getSchema();
-          if (!schema.existsClass("test")) {
-            OClass oclass = schema.createClass("test");
-            oclass.createProperty("name", OType.STRING);
-            oclass.createProperty("value", OType.STRING);
-          }
-        },
-        v -> {
-          if (v.failed()) {
-            handler.handle(Future.failedFuture(v.cause()));
-          }
-          else {
-            deployVerticles(connectionOptions, handler);
-          }
-        }
-    );
+  @Override
+  public void stop(final Future<Void> stopFuture) throws Exception {
+    manager.close(v -> {
+      if (v.failed()) {
+        stopFuture.fail(v.cause());
+      }
+      else {
+        stopFuture.complete();
+      }
+    });
   }
 
-  private void deployVerticles(ConnectionOptions connectionOptions, Handler<AsyncResult<Void>> handler) {
+  private void createDocumentDatabase(final Handler<AsyncResult<Void>> handler) {
+    selectConnectionInfo(co -> {
+      if (co.failed()) {
+        handler.handle(Future.failedFuture(co.cause()));
+      }
+      else {
+        ConnectionOptions connectionOptions = co.result();
+        manager.createDocumentInstance(
+            connectionOptions,
+            adb -> {
+              log.info("Schema update");
+              OSchema schema = adb.getMetadata().getSchema();
+              if (!schema.existsClass("test")) {
+                OClass oclass = schema.createClass("test");
+                oclass.createProperty("name", OType.STRING);
+                oclass.createProperty("value", OType.STRING);
+              }
+              log.info("Schema done");
+            },
+            v -> {
+              if (v.failed()) {
+                log.info("Test subject DB creation failed", v.cause());
+                handler.handle(Future.failedFuture(v.cause()));
+              }
+              else {
+                log.info("Test subject DB creation done");
+                deployVerticles(connectionOptions, handler);
+              }
+            }
+        );
+      }
+    });
+  }
+
+  private void deployVerticles(final ConnectionOptions connectionOptions, final Handler<AsyncResult<Void>> handler) {
     manager.documentInstance(connectionOptions.name(), adb -> {
       if (adb.failed()) {
         log.warn("Failed to deploy verticles", adb.cause());
@@ -108,41 +142,40 @@ public class TestVerticle
         vertx.deployVerticle(ServiceReaderVerticle.class.getName());
         vertx.deployVerticle(ServiceWriterVerticle.class.getName());
 
+        log.info("Verticles deployed?");
         handler.handle(Future.succeededFuture());
       }
     });
   }
 
-  private ConnectionOptions selectConnectionInfo() {
+  private void selectConnectionInfo(final Handler<AsyncResult<ConnectionOptions>> handler) {
     String protocol = config().getString("protocol", "plocal");
     String name = Objects.requireNonNull(config().getString("name"));
     if (protocol.equals("plocal")) {
-      return manager.plocalConnection(name).build();
+      handler.handle(Future.succeededFuture(manager.plocalConnection(name).build()));
     }
     else if (protocol.equals("memory")) {
-      return manager.memoryConnection(name).build();
+      handler.handle(Future.succeededFuture(manager.memoryConnection(name).build()));
     }
     else if (protocol.equals("remote")) {
-      CountDownLatch serverUp = new CountDownLatch(1);
       String servername = name + "_server";
       manager.createDocumentInstance(
           manager.plocalConnection(servername).build(),
           db -> db.getMetadata().getSchema().createClass("test"),
           v -> {
-            serverUp.countDown();
+            if (v.failed()) {
+              log.info("Start of REMOTE target: {} failed", servername, v.cause());
+              handler.handle(Future.failedFuture(v.cause()));
+            }
+            else {
+              log.info("Started REMOTE target: {}", servername);
+              handler.handle(Future.succeededFuture(manager.remoteConnection(name, "localhost", servername).build()));
+            }
           }
       );
-      // this is hack, but ok for test
-      try {
-        serverUp.await();
-      }
-      catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
-      return manager.remoteConnection(name, "localhost", servername).build();
     }
     else {
-      throw new IllegalArgumentException("Unknown protocol: " + protocol);
+      handler.handle(Future.failedFuture(new IllegalArgumentException("Unknown protocol: " + protocol)));
     }
   }
 }

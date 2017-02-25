@@ -15,6 +15,7 @@ import com.orientechnologies.orient.server.OServer;
 import com.orientechnologies.orient.server.config.OServerConfiguration;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -78,7 +79,7 @@ public class ManagerImpl
   }
 
   private <T> void executeBlocking(Handler<Future<T>> blockingCodeHandler, Handler<AsyncResult<T>> resultHandler) {
-    vertx.executeBlocking(blockingCodeHandler, false, resultHandler);
+    vertx.executeBlocking(blockingCodeHandler, resultHandler);
   }
 
   @Override
@@ -95,7 +96,7 @@ public class ManagerImpl
         },
         handler
     );
-    return null;
+    return this;
   }
 
   @Override
@@ -157,7 +158,7 @@ public class ManagerImpl
           try {
             DatabaseInfo databaseInfo = databaseInfos.get(name);
             if (databaseInfo == null) {
-              f.fail(new IllegalArgumentException("Non existent database:" + name));
+              f.fail(new IllegalArgumentException("Doc: Non existent database:" + name));
             }
             else {
               f.complete(new DocumentDatabaseImpl(name, this));
@@ -193,7 +194,7 @@ public class ManagerImpl
           try {
             DatabaseInfo databaseInfo = databaseInfos.get(name);
             if (databaseInfo == null) {
-              f.fail(new IllegalArgumentException("Non existent database:" + name));
+              f.fail(new IllegalArgumentException("Graph: Non existent database:" + name));
             }
             else {
               f.complete(new GraphDatabaseImpl(name, this));
@@ -363,7 +364,7 @@ public class ManagerImpl
           try {
             DatabaseInfo databaseInfo = databaseInfos.get(name);
             if (databaseInfo == null) {
-              IllegalArgumentException iaex = new IllegalArgumentException("Non existent database:" + name);
+              IllegalArgumentException iaex = new IllegalArgumentException("Exec: Non existent database: " + name);
               handler.handle(Future.failedFuture(iaex));
               f.fail(iaex);
             }
@@ -392,7 +393,7 @@ public class ManagerImpl
             synchronized (databaseInfos) {
               DatabaseInfo databaseInfo = databaseInfos.get(name);
               if (databaseInfo == null) {
-                f.fail(new IllegalArgumentException("Non existent database:" + name));
+                f.fail(new IllegalArgumentException("Close: Non existent database: " + name));
               }
               else {
                 databaseInfo.close();

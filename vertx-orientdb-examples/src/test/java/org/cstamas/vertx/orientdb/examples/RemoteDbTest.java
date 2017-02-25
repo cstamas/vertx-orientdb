@@ -9,7 +9,6 @@ import org.junit.Test;
 /**
  * Junit test.
  */
-@Ignore("remote access has some peculiarities, and it currently does not work with ODB 2.2.x")
 public class RemoteDbTest
     extends TestSupport
 {

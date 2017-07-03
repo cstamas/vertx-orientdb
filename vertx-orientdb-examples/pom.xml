@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -8,7 +9,6 @@
   </parent>
 
   <artifactId>vertx-orientdb-examples</artifactId>
-  <packaging>takari-jar</packaging>
   <name>${project.groupId}:${project.artifactId}</name>
 
   <dependencies>
@@ -86,23 +86,26 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>io.takari.maven.plugins</groupId>
-        <artifactId>takari-lifecycle-plugin</artifactId>
-        <configuration>
-          <proc>procEX</proc>
-          <annotationProcessors>
-            <annotationProcessor>io.vertx.codegen.CodeGenProcessor</annotationProcessor>
-          </annotationProcessors>
-          <annotationProcessorOptions>
-            <outputDirectory>${project.basedir}/src/main</outputDirectory>
-          </annotationProcessorOptions>
-        </configuration>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>default-compile</id>
+            <configuration>
+              <annotationProcessors>
+                <annotationProcessor>io.vertx.codegen.CodeGenProcessor</annotationProcessor>
+              </annotationProcessors>
+              <compilerArgs>
+                <arg>-AoutputDirectory=${project.basedir}/src/main</arg>
+              </compilerArgs>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <forkMode>always</forkMode>
           <argLine>-XX:MaxDirectMemorySize=16384m</argLine>
         </configuration>
       </plugin>

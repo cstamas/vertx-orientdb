@@ -32,7 +32,7 @@
 
   <properties>
     <vertx.version>3.4.2</vertx.version>
-    <orientdb.version>2.2.22</orientdb.version>
+    <orientdb.version>2.2.23</orientdb.version>
     <tinkerpop.version>2.6.0</tinkerpop.version> <!-- Keep in sync with OrientDB graph! -->
     <slf4j.version>1.7.25</slf4j.version>
     <logback.version>1.2.3</logback.version>
@@ -189,7 +189,7 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <version>2.19.1</version>
           <configuration>
-            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+            <redirectTestOutputToFile>false</redirectTestOutputToFile>
           </configuration>
         </plugin>
       </plugins>

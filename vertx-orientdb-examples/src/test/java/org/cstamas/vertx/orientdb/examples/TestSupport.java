@@ -32,7 +32,7 @@ public abstract class TestSupport
   public void setUp(TestContext context) throws Exception {
     vertx = Vertx.vertx();
     // https://github.com/eclipse/vert.x/issues/1625
-    // vertx.exceptionHandler(context.exceptionHandler());
+    vertx.exceptionHandler(context.exceptionHandler());
   }
 
   @After

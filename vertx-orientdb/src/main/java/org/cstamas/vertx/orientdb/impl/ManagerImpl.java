@@ -15,7 +15,6 @@ import com.orientechnologies.orient.server.OServer;
 import com.orientechnologies.orient.server.config.OServerConfiguration;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -358,31 +357,34 @@ public class ManagerImpl
   }
 
   void exec(final String name, final Handler<AsyncResult<ODatabaseDocumentTx>> handler) {
-    executeBlocking(
-        f -> {
-          try {
-            DatabaseInfo databaseInfo = databaseInfos.get(name);
-            if (databaseInfo == null) {
-              IllegalArgumentException iaex = new IllegalArgumentException("Exec: Non existent database: " + name);
-              handler.handle(Future.failedFuture(iaex));
-              f.fail(iaex);
-            }
-            else {
-              OPartitionedDatabasePool pool = databaseInfo.databasePool;
-              try (ODatabaseDocumentTx db = pool.acquire()) {
-                handler.handle(Future.succeededFuture(db));
-              }
-              f.complete();
-            }
-          }
-          catch (Exception e) {
-            handler.handle(Future.failedFuture(e));
-            f.fail(e);
-          }
-        },
-        v -> {
+    Handler<Future<Void>> exec = f -> {
+      try {
+        DatabaseInfo databaseInfo = databaseInfos.get(name);
+        if (databaseInfo == null) {
+          IllegalArgumentException iaex = new IllegalArgumentException("Exec: Non existent database: " + name);
+          handler.handle(Future.failedFuture(iaex));
+          f.fail(iaex);
         }
-    );
+        else {
+          OPartitionedDatabasePool pool = databaseInfo.databasePool;
+          try (ODatabaseDocumentTx db = pool.acquire()) {
+            handler.handle(Future.succeededFuture(db));
+          }
+          f.complete();
+        }
+      }
+      catch (Exception e) {
+        handler.handle(Future.failedFuture(e));
+        f.fail(e);
+      }
+    };
+
+    if (managerOptions.isUseEventLoop()) {
+      exec.handle(Future.future());
+    }
+    else {
+      vertx.getOrCreateContext().executeBlocking(exec, v -> {});
+    }
   }
 
   void close(final String name, final Handler<AsyncResult<Void>> handler) {

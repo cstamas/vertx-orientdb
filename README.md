@@ -16,7 +16,7 @@ To use the OrientDB in Vert.x, you need to include following dependency to your 
     <dependency>
       <groupId>org.cstamas.vertx.orientdb</groupId>
       <artifactId>database</artifactId>
-      <version>4.0.1</version>
+      <version>5.1.0</version>
     </dependency>
 
 ```
@@ -57,11 +57,7 @@ distribution).
 
 ## Branches and building
 
-* master - uses latest OrientDB 2.2.x and Vert.x 3.3
-
-Note: build depends on https://github.com/vert-x3/vertx-codegen/issues/81 as it uses Takari Lifecycle
-with JDT compiler! Hence, must use Vert.x 3.3.2+ if you are building this project.
-
+* master - uses latest OrientDB 2.2.x and Vert.x 3.4
 
 Have fun!  
 ~t~

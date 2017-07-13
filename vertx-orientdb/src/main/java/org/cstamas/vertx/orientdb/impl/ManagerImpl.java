@@ -120,6 +120,22 @@ public class ManagerImpl
     );
   }
 
+  private void closeServer() {
+    // documentInstance shutdown
+    orientServer.shutdown();
+    orientServer = null;
+  }
+
+  private void closeManager() {
+    synchronized (databaseInfos) {
+      databaseInfos.values().forEach(DatabaseInfo::close);
+      databaseInfos.clear();
+    }
+
+    // global shutdown
+    Orient.instance().shutdown();
+  }
+
   @Override
   public ConnectionOptions.Builder plocalConnection(final String name) {
     return new ConnectionOptions.Builder(
@@ -211,11 +227,11 @@ public class ManagerImpl
 
   private void open() throws Exception {
     try {
+      log.info("OrientDB " + OConstants.getVersion() + " manager started");
+      openManager();
       if (managerOptions.isServerEnabled()) {
         openServer();
       }
-      openManager();
-      log.info("OrientDB " + OConstants.getVersion() + " manager started");
     }
     catch (Exception e) {
       log.error("Could not open database", e);
@@ -223,11 +239,23 @@ public class ManagerImpl
     }
   }
 
-  private void openServer() throws Exception {
-    configureServer();
-
+  private void openManager() throws IOException {
+    if (orientServer != null) {
+      // server is running, obey server managerOptions
+      this.databasesDir = Paths.get(orientServer.getDatabaseDirectory());
+    }
+    else {
+      // just embedded, obey our managerOptions
+      Path orientHome = Paths.get(managerOptions.getOrientHome()).toAbsolutePath();
+      this.databasesDir = orientHome.resolve("databases");
+    }
     // global startup
     Orient.instance().startup();
+    Orient.instance().removeShutdownHook();
+  }
+
+  private void openServer() throws Exception {
+    configureServer();
 
     // documentInstance startup
     OServer server = new OServer();
@@ -235,7 +263,6 @@ public class ManagerImpl
     server.setServerRootDirectory(orientHome.toString());
     server.startup(orientServerConfig.toFile());
 
-    Orient.instance().removeShutdownHook();
     server.removeShutdownHook();
 
     // Orient.documentInstance().addDbLifecycleListener(entityHook);
@@ -275,34 +302,6 @@ public class ManagerImpl
     try (InputStream defaultConfig = getClass().getClassLoader()
         .getResourceAsStream(name)) {
       Files.copy(defaultConfig, target);
-    }
-  }
-
-  private void openManager() throws IOException {
-    if (orientServer != null) {
-      // server is running, obey server managerOptions
-      this.databasesDir = Paths.get(orientServer.getDatabaseDirectory());
-    }
-    else {
-      // just embedded, obey our managerOptions
-      Path orientHome = Paths.get(managerOptions.getOrientHome()).toAbsolutePath();
-      this.databasesDir = orientHome.resolve("databases");
-    }
-  }
-
-  private void closeServer() {
-    // documentInstance shutdown
-    orientServer.shutdown();
-    orientServer = null;
-
-    // global shutdown
-    Orient.instance().shutdown();
-  }
-
-  private void closeManager() {
-    synchronized (databaseInfos) {
-      databaseInfos.values().forEach(DatabaseInfo::close);
-      databaseInfos.clear();
     }
   }
 
